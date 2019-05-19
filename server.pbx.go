@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/obase/conf"
 	"google.golang.org/grpc"
 	"net"
 	"os"
@@ -130,6 +131,12 @@ func NewServerWith(c *Conf) *Server {
 	}
 }
 
+const CKEY = "service"
+
 func NewServer() *Server {
-	return NewServerWith(NewConf())
+	var cf *Conf
+	if conf.Scan(CKEY, &cf) {
+		return NewServerWith(cf)
+	}
+	return NewServerWith(nil)
 }
