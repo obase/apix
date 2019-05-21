@@ -1,26 +1,35 @@
 package pbx
 
 import (
-	"github.com/hashicorp/consul/api"
-	"sync"
+	"context"
+	. "github.com/hashicorp/consul/api"
+	"github.com/obase/conf"
+	"github.com/obase/log"
+	"github.com/pkg/errors"
 )
 
-var once sync.Once
+var client *Client
 
-var client *api.Client
-
-func reset(consulAgent string) {
-	var err error
-	config := api.DefaultConfig()
-	if consulAgent != "" {
-		config.Address = conf.ConsulAgent
-	}
-	if consulClient, err = api.NewClient(config); err != nil { // 兼容旧的逻辑
-		Errorf(context.Background(), "Create consul client failed. error: %v", err)
-		panic(err)
+func init() {
+	consulAgent, _ := conf.GetString("service.consulAgent")
+	// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
+	if consulAgent != "0.0.0.0" && consulAgent != "-" {
+		config := DefaultConfig()
+		if consulAgent != "" {
+			config.Address = consulAgent
+		}
+		var err error
+		if client, err = NewClient(config); err != nil { // 兼容旧的逻辑
+			log.Errorf(context.Background(), "Create consul client failed. error: %v", err)
+		}
 	}
 }
 
-func Client() *api.Client {
+var ErrNilClient = errors.New("consul client nil")
 
+func RegisterService(service *AgentServiceRegistration) error {
+	if client != nil {
+		return client.Agent().ServiceRegister(service)
+	}
+	return ErrNilClient
 }

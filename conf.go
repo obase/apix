@@ -3,8 +3,6 @@ package pbx
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/obase/api"
-	"github.com/obase/log"
 )
 
 /*服务配置,注意兼容性.Grpc服务添加前缀"grpc."*/
@@ -25,21 +23,6 @@ type Conf struct {
 	ConsulCheckIntervalHttp string `json:"consulCheckIntervalHttp"`
 	ConsulCheckTimeoutGrpc  string `json:"consulCheckTimeoutGrpc"`
 	ConsulCheckIntervalGrpc string `json:"consulCheckIntervalGrpc"`
-}
-
-// 临时适配
-var (
-	Errorf api.LoggerFunc = log.Error
-	Inforf api.LoggerFunc = log.Info
-	Debugf api.LoggerFunc = log.Debug
-)
-
-func ParsingRequestError(err error, tag string) error {
-	return &Response{
-		Code: PARSING_REQUEST_ERROR,
-		Msg:  err.Error(),
-		Tag:  tag,
-	}
 }
 
 // 兼容旧的命名逻辑, 不加任何后缀
@@ -65,7 +48,7 @@ func NewConf() *Conf {
 }
 
 // 合并默认值
-func MergeDefltConf(conf *Conf) *Conf {
+func MergeDefaultConfig(conf *Conf) *Conf {
 
 	if conf == nil || conf.Name == "" {
 		panic("Missing service name")
