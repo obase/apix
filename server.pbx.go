@@ -66,7 +66,7 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpServer *gin.Engine) {
 
 }
 
-func (server *Server) SetupAndServe() {
+func (server *Server) Serve() (err error) {
 
 	var operations []func()
 	var grpcServer *grpc.Server
@@ -118,6 +118,7 @@ func (server *Server) SetupAndServe() {
 	}
 
 	// 信号处理(TBD)
+	return
 }
 
 /*

@@ -11,27 +11,9 @@ import (
 	"sync"
 )
 
-var consulClient *api.Client
-
-var consulOnce sync.Once
-
-func initConculClient(conf *Conf) {
-	var err error
-	config := api.DefaultConfig()
-	if conf.Mode == gin.DebugMode && conf.CenterAddress != "" {
-		config.Address = conf.CenterAddress
-	}
-	if consulClient, err = api.NewClient(config); err != nil { // 兼容旧的逻辑
-		Errorf(context.Background(), "Create consul client failed. error: %v", err)
-		panic(err)
-	}
-}
-
 func RegisterHttpHealthCheck(httpServer *gin.Engine, conf *Conf) {
 	httpServer.GET("/health", CheckHttpHealth)
-	consulOnce.Do(func() {
-		initConculClient(conf)
-	})
+
 	if consulClient != nil {
 
 		regs := &api.AgentServiceRegistration{
@@ -43,8 +25,8 @@ func RegisterHttpHealthCheck(httpServer *gin.Engine, conf *Conf) {
 			Tags:    []string{"http", conf.Name, conf.HttpName()},
 			Check: &api.AgentServiceCheck{
 				HTTP:     fmt.Sprintf("http://%s/health", conf.HttpAddr()),
-				Timeout:  conf.HttpCheckTimeout,
-				Interval: conf.HttpCheckInterval,
+				Timeout:  conf.ConsulCheckTimeoutHttp,
+				Interval: conf.ConsulCheckIntervalHttp,
 			},
 		}
 		if err := consulClient.Agent().ServiceRegister(regs); err != nil {
@@ -80,8 +62,8 @@ func RegisterGrpcHealthCheck(grpcServer *grpc.Server, conf *Conf) {
 			Tags:    []string{"grpc", conf.Name, conf.GrpcName()},
 			Check: &api.AgentServiceCheck{
 				GRPC:     fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
-				Timeout:  conf.GrpcCheckTimeout,
-				Interval: conf.GrpcCheckInterval,
+				Timeout:  conf.ConsulCheckTimeoutGrpc,
+				Interval: conf.ConsulCheckIntervalGrpc,
 			},
 		}
 		if err := consulClient.Agent().ServiceRegister(regs); err != nil {
