@@ -1,4 +1,4 @@
-module github.com/obase/pbx
+module github.com/obase/apix
 
 go 1.12
 

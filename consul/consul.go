@@ -40,3 +40,12 @@ func RegisterService(service *AgentServiceRegistration) (err error) {
 	}
 	return ErrInvalidClient
 }
+
+func DiscoveryService(lastIndex uint64, service string, tags ...string) ([]*ServiceEntry, *QueryMeta, error) {
+	if client != nil {
+		return client.Health().ServiceMultipleTags(service, tags, true, &QueryOptions{
+			WaitIndex: lastIndex,
+		})
+	}
+	return nil, nil, nil
+}

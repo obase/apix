@@ -1,10 +1,11 @@
-package pbx
+package apix
 
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
+	"github.com/obase/log"
 	"net"
 	"net/http"
 )
@@ -12,7 +13,7 @@ import (
 // TODO: 附加访问时长
 func RecoverHandleFunc(c *gin.Context) {
 	if perr := recover(); perr != nil {
-		Errorf(c, "recover error: %v", perr)
+		log.Errorf(c, "recover error: %v", perr)
 	}
 }
 
@@ -37,7 +38,7 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 					Tag:  tag,
 				})
 			} else {
-				Errorf(c, "%s execute service: %v", tag, err)
+				log.Errorf(c, "%s execute service: %v", tag, err)
 				if ersp, ok := err.(*api.Response); ok {
 					wdata, _ = json.Marshal(ersp)
 				} else {
@@ -49,7 +50,7 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 				}
 			}
 		} else {
-			Errorf(c, "%s reading request: %v", tag, err)
+			log.Errorf(c, "%s reading request: %v", tag, err)
 			wdata, _ = json.Marshal(&api.Response{
 				Code: api.READING_REQUEST_ERROR,
 				Msg:  err.Error(),
@@ -69,7 +70,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
-			Errorf(c, "upgrade connection: %v", tag, err)
+			log.Errorf(c, "upgrade connection: %v", tag, err)
 			return
 		}
 		for {
@@ -82,7 +83,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 			)
 			mtype, rdata, err = conn.ReadMessage()
 			if err != nil {
-				Errorf(c, "%s reading message: %v", tag, err)
+				log.Errorf(c, "%s reading message: %v", tag, err)
 				return
 			}
 			rsp, err = af(c, rdata)
@@ -93,7 +94,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 					Tag:  tag,
 				})
 			} else {
-				Errorf(c, "%s execute service: %v", tag, err)
+				log.Errorf(c, "%s execute service: %v", tag, err)
 				if ersp, ok := err.(*api.Response); ok {
 					wdata, _ = json.Marshal(ersp)
 				} else {
@@ -106,7 +107,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 			}
 			err = conn.WriteMessage(mtype, wdata)
 			if err != nil {
-				Errorf(c, "%s writing message: %v", tag, err)
+				log.Errorf(c, "%s writing message: %v", tag, err)
 				return
 			}
 		}
