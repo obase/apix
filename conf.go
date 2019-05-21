@@ -50,8 +50,8 @@ func NewConf() *Conf {
 // 合并默认值
 func MergeDefaultConfig(conf *Conf) *Conf {
 
-	if conf == nil || conf.Name == "" {
-		panic("Missing service name")
+	if conf == nil {
+		conf = &Conf{}
 	}
 
 	if conf.Mode == "" {

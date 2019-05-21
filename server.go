@@ -294,7 +294,7 @@ const CKEY = "service"
 
 func NewServer() *Server {
 	var cf *Conf
-	if conf.Scan(CKEY, &cf) {
+	if ok := conf.Scan(CKEY, &cf); ok {
 		return NewServerWith(cf)
 	}
 	return NewServerWith(nil)
