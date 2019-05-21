@@ -2,8 +2,8 @@ package apix
 
 import (
 	"context"
+	"github.com/obase/apix/consul"
 	"github.com/obase/log"
-	"github.com/obase/pbx/consul"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/naming"
 	"net"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/consul/api"
-	"github.com/obase/pbx/consul"
-	"github.com/obase/pbx/grpc_health_v1"
+	"github.com/obase/apix/consul"
+	"github.com/obase/apix/grpc_health_v1"
 	"google.golang.org/grpc"
 	"net/http"
 )
