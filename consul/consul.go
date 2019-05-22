@@ -22,8 +22,13 @@ func init() {
 		if client, err = NewClient(config); err != nil { // 兼容旧的逻辑
 			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
 		} else {
-			log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
+			if _, err = client.Agent().Services(); err != nil {
+				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+			} else {
+				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
+			}
 		}
+
 	}
 }
 
