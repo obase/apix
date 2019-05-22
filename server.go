@@ -169,7 +169,9 @@ func (server *Server) Serve() error {
 		}
 		grpcServer = grpc.NewServer(server.serverOption...)
 		// 注册grpc服务
-		registerServiceGrpc(grpcServer, server.conf)
+		if server.conf.Name != "" {
+			registerServiceGrpc(grpcServer, server.conf)
+		}
 		// 创建监听端口
 		lis, err := net.Listen("tcp", server.conf.GrpcAddr())
 		if err != nil {
@@ -192,7 +194,9 @@ func (server *Server) Serve() error {
 		ginEngine = gin.New()
 		ginEngine.Use(server.middleFilter...)
 		// 注册http检查
-		registerServiceHttp(ginEngine, server.conf)
+		if server.conf.Name != "" {
+			registerServiceHttp(ginEngine, server.conf)
+		}
 		httpServer = &http.Server{Handler: ginEngine}
 		// 创建监听端口
 		lis, err := net.Listen("tcp", server.conf.HttpAddr())

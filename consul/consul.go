@@ -13,24 +13,22 @@ var client *Client
 func init() {
 	consulAgent, _ := conf.GetString("service.consulAgent")
 	// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
-	if consulAgent != "0.0.0.0" && consulAgent != "-" {
-		config := DefaultConfig()
-		if consulAgent != "" {
-			config.Address = consulAgent
-		}
-		var err error
-		if client, err = NewClient(config); err != nil { // 兼容旧的逻辑
+	config := DefaultConfig()
+	if consulAgent != "" {
+		config.Address = consulAgent
+	}
+	var err error
+	if client, err = NewClient(config); err != nil { // 兼容旧的逻辑
+		log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+		log.Flushf()
+	} else {
+		if _, err = client.Agent().Services(); err != nil {
 			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
 			log.Flushf()
 		} else {
-			if _, err = client.Agent().Services(); err != nil {
-				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
-				log.Flushf()
-			} else {
-				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
-			}
+			log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
+			log.Flushf()
 		}
-
 	}
 }
 
