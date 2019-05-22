@@ -23,9 +23,10 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
 		Port:    conf.HttpPort,
 		Tags:    []string{"http", conf.Name, conf.HttpName()},
 		Check: &api.AgentServiceCheck{
-			HTTP:     fmt.Sprintf("http://%s/health", conf.HttpAddr()),
-			Timeout:  conf.ConsulCheckTimeoutHttp,
-			Interval: conf.ConsulCheckIntervalHttp,
+			HTTP:                           fmt.Sprintf("http://%s/health", conf.HttpAddr()),
+			Timeout:                        conf.ConsulCheckTimeoutHttp,
+			Interval:                       conf.ConsulCheckIntervalHttp,
+			DeregisterCriticalServiceAfter: conf.ConsulDeregisterServiceAfter,
 		},
 	}
 	consul.RegisterService(regs)
@@ -49,12 +50,20 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Conf) {
 		Port:    conf.GrpcPort,
 		Tags:    []string{"grpc", conf.Name, conf.GrpcName()},
 		Check: &api.AgentServiceCheck{
-			GRPC:     fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
-			Timeout:  conf.ConsulCheckTimeoutGrpc,
-			Interval: conf.ConsulCheckIntervalGrpc,
+			GRPC:                           fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
+			Timeout:                        conf.ConsulCheckTimeoutGrpc,
+			Interval:                       conf.ConsulCheckIntervalGrpc,
+			DeregisterCriticalServiceAfter: conf.ConsulDeregisterServiceAfter,
 		},
 	}
 	consul.RegisterService(regs)
+}
+
+func deregisterService(conf *Conf) {
+	consul.DeregisterService(conf.GrpcName() + "@" + conf.GrpcAddr())
+	consul.DeregisterService(conf.HttpName() + "@" + conf.HttpAddr())
+	// 兼容旧接口
+	consul.DeregisterService(conf.Name + "@" + conf.HttpAddr())
 }
 
 func CheckHttpHealth(ctx *gin.Context) {

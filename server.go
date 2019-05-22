@@ -234,12 +234,13 @@ func (server *Server) Serve() error {
 
 	// 优雅关闭http与grpc服务
 	sch := make(chan os.Signal, 1)
-	signal.Notify(sch, syscall.SIGHUP)
+	signal.Notify(sch, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+_EXIT:
 	for {
 		sig := <-sch
 
 		switch sig {
-		case syscall.SIGHUP:
+		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM:
 			ws := new(sync.WaitGroup)
 			if httpServer != nil {
 				ws.Add(1)
@@ -256,9 +257,15 @@ func (server *Server) Serve() error {
 				}(ws)
 			}
 			ws.Wait()
+			break _EXIT
 		}
 	}
-	// 信号处理(TBD)
+
+	// 反注册consul服务,另外还设定了超时反注册,双重保障
+	if server.conf.Name != "" {
+		deregisterService(server.conf)
+	}
+
 	return nil
 }
 

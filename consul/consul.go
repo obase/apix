@@ -47,6 +47,15 @@ func RegisterService(service *AgentServiceRegistration) (err error) {
 	return ErrInvalidClient
 }
 
+func DeregisterService(serviceId string) {
+	if err := client.Agent().ServiceDeregister(serviceId); err != nil {
+		log.Errorf(context.Background(), "Deregister consul service error: %v, %v", serviceId, err)
+		log.Flushf()
+	} else {
+		log.Inforf(context.Background(), "Deregister consul service success: %v", serviceId)
+	}
+}
+
 func DiscoveryService(lastIndex uint64, service string, tags ...string) ([]*ServiceEntry, *QueryMeta, error) {
 	if client != nil {
 		return client.Health().ServiceMultipleTags(service, tags, true, &QueryOptions{
