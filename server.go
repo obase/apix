@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/obase/api"
 	"github.com/obase/conf"
 	"github.com/obase/log"
 	"google.golang.org/grpc"
@@ -20,6 +21,15 @@ import (
 
 /*方法处理原型*/
 type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
+
+/*封装错误类型*/
+func ParsingRequestError(err error, tag string) error {
+	return &api.Response{
+		Code: api.PARSING_REQUEST_ERROR,
+		Msg:  err.Error(),
+		Tag:  tag,
+	}
+}
 
 /*处理引擎*/
 type Server struct {
