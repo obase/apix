@@ -21,9 +21,11 @@ func init() {
 		var err error
 		if client, err = NewClient(config); err != nil { // 兼容旧的逻辑
 			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+			log.Flushf()
 		} else {
 			if _, err = client.Agent().Services(); err != nil {
 				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+				log.Flushf()
 			} else {
 				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
 			}
@@ -38,6 +40,7 @@ func RegisterService(service *AgentServiceRegistration) (err error) {
 	if client != nil {
 		if err = client.Agent().ServiceRegister(service); err != nil {
 			log.Errorf(context.Background(), "Register consul service error: %v, %v", service, err)
+			log.Flushf()
 			return err
 		} else {
 			log.Inforf(context.Background(), "Register consul service success: %v", service)

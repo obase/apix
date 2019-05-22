@@ -174,12 +174,14 @@ func (server *Server) Serve() error {
 		lis, err := net.Listen("tcp", server.conf.GrpcAddr())
 		if err != nil {
 			log.Errorf(context.Background(), "grpc server listen error: %v", err)
+			log.Flushf()
 			return err
 		}
 		// 启动grpc服务
 		operations = append(operations, func() {
 			if err = grpcServer.Serve(lis); err != nil {
 				log.Errorf(context.Background(), "grpc server serve error: %v", err)
+				log.Flushf()
 				os.Exit(1)
 			}
 		})
@@ -196,6 +198,7 @@ func (server *Server) Serve() error {
 		lis, err := net.Listen("tcp", server.conf.HttpAddr())
 		if err != nil {
 			log.Errorf(context.Background(), "grpc server listen error: %v", err)
+			log.Flushf()
 			return err
 		}
 		kalis := &tcpKeepAliveListener{
@@ -211,6 +214,7 @@ func (server *Server) Serve() error {
 		operations = append(operations, func() {
 			if err := httpServer.Serve(kalis); err != nil {
 				log.Errorf(context.Background(), "http server serve error: %v", err)
+				log.Flushf()
 				os.Exit(1)
 			}
 		})
