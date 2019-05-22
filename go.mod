@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/consul/api v1.1.0
-	github.com/obase/api v0.0.7
+	github.com/obase/api v0.1.0
 	github.com/obase/conf v0.0.2
 	github.com/obase/log v0.0.7
 	github.com/pkg/errors v0.8.1
