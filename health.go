@@ -13,6 +13,9 @@ import (
 
 func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
 
+	// 先初始化Consul
+	consul.Init()
+
 	httpServer.GET("/health", CheckHttpHealth)
 
 	regs := &api.AgentServiceRegistration{
@@ -40,6 +43,10 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
 }
 
 func registerServiceGrpc(grpcServer *grpc.Server, conf *Conf) {
+
+	// 先初始化Consul
+	consul.Init()
+
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
 	regs := &api.AgentServiceRegistration{

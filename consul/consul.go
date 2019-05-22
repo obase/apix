@@ -14,36 +14,36 @@ var once sync.Once
 
 var ErrInvalidClient = errors.New("consul client invalid")
 
-func Client() *api.Client {
-	once.Do(Init)
-	return client
-}
-
 func Init() {
-	consulAgent, _ := conf.GetString("service.consulAgent")
-	// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
-	config := api.DefaultConfig()
-	if consulAgent != "" {
-		config.Address = consulAgent
-	}
-	var err error
-	if client, err = api.NewClient(config); err != nil { // 兼容旧的逻辑
-		log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
-		log.Flushf()
-	} else {
-		if _, err = client.Agent().Services(); err != nil {
+	once.Do(func() {
+		// 先初始化配置
+		conf.Init()
+
+		consulAgent, _ := conf.GetString("service.consulAgent")
+		// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
+		config := api.DefaultConfig()
+		if consulAgent != "" {
+			config.Address = consulAgent
+		}
+		var err error
+		if client, err = api.NewClient(config); err != nil { // 兼容旧的逻辑
 			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
 			log.Flushf()
 		} else {
-			log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
-			log.Flushf()
+			if _, err = client.Agent().Services(); err != nil {
+				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+				log.Flushf()
+			} else {
+				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
+				log.Flushf()
+			}
 		}
-	}
+	})
 }
 
 func RegisterService(service *api.AgentServiceRegistration) (err error) {
 	if client != nil {
-		if err = Client().Agent().ServiceRegister(service); err != nil {
+		if err = client.Agent().ServiceRegister(service); err != nil {
 			log.Errorf(context.Background(), "Register consul service error: %v, %v", service, err)
 			log.Flushf()
 			return err
@@ -55,7 +55,7 @@ func RegisterService(service *api.AgentServiceRegistration) (err error) {
 }
 
 func DeregisterService(serviceId string) {
-	if err := Client().Agent().ServiceDeregister(serviceId); err != nil {
+	if err := client.Agent().ServiceDeregister(serviceId); err != nil {
 		log.Errorf(context.Background(), "Deregister consul service error: %v, %v", serviceId, err)
 		log.Flushf()
 	} else {
@@ -65,7 +65,7 @@ func DeregisterService(serviceId string) {
 
 func DiscoveryService(lastIndex uint64, service string, tags ...string) ([]*api.ServiceEntry, *api.QueryMeta, error) {
 	if client != nil {
-		return Client().Health().ServiceMultipleTags(service, tags, true, &api.QueryOptions{
+		return client.Health().ServiceMultipleTags(service, tags, true, &api.QueryOptions{
 			WaitIndex: lastIndex,
 		})
 	}

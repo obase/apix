@@ -58,6 +58,9 @@ func (r *consulResolverWatcher) Resolve(target string) (naming.Watcher, error) {
 }
 
 func DialConn(service string) (*grpc.ClientConn, error) {
+	// 先初始化Consul
+	consul.Init()
+
 	return grpc.Dial("", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithBalancer(
 		grpc.RoundRobin(&consulResolverWatcher{
 			service: service,

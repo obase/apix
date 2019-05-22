@@ -158,6 +158,9 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpServer *gin.Engine) {
 
 func (server *Server) Serve() error {
 
+	// 先初始化log
+	log.Init()
+
 	defer log.Flushf()
 
 	var operations []func()
@@ -320,6 +323,9 @@ func NewServerWith(c *Conf) *Server {
 const CKEY = "service"
 
 func NewServer() *Server {
+	// 先初始化配置
+	conf.Init()
+
 	var cf *Conf
 	if ok := conf.Scan(CKEY, &cf); ok {
 		return NewServerWith(cf)
