@@ -148,6 +148,8 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpServer *gin.Engine) {
 
 func (server *Server) Serve() error {
 
+	defer log.Flushf()
+
 	var operations []func()
 	var grpcServer *grpc.Server
 	var httpServer *http.Server
