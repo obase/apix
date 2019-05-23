@@ -156,3 +156,5 @@ func Errorf(code int, format string, args ...interface{}) error {
 		Msg:  fmt.Sprintf(format, args...),
 	}
 }
+
+var None = new(Void) // 定义空值
