@@ -2,6 +2,7 @@ package apix
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
@@ -148,3 +149,10 @@ var PrivateAddress = func(def string) (ret string) {
 	}
 	return def
 }("127.0.0.1")
+
+func Errorf(code int, format string, args ...interface{}) error {
+	return &api.Response{
+		Code: code,
+		Msg:  fmt.Sprintf(format, args...),
+	}
+}
