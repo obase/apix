@@ -21,6 +21,7 @@ import (
 
 /*方法处理原型*/
 type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
+type RouteFunc func(engine *gin.Engine)
 
 /*封装错误类型*/
 func ParsingRequestError(err error, tag string) error {
@@ -38,6 +39,7 @@ type Server struct {
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
 	services     []*Service
+	routeFunc    RouteFunc
 }
 
 func (s *Server) Init(f func(server *Server)) {
@@ -152,8 +154,15 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpServer *gin.Engine) {
 				}
 			}
 		}
+		if server.routeFunc != nil {
+			// 附加额外的API设置,预防额外逻辑
+			server.routeFunc(httpServer)
+		}
 	}
 
+}
+func (server *Server) Route(rf RouteFunc) {
+	server.routeFunc = rf
 }
 
 func (server *Server) Serve() error {
