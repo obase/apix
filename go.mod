@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/consul/api v1.1.0
 	github.com/obase/api v0.3.0
-	github.com/obase/conf v0.3.0
-	github.com/obase/log v0.3.0
+	github.com/obase/conf v0.4.0
+	github.com/obase/log v0.4.0
 	google.golang.org/grpc v1.20.1
 )
