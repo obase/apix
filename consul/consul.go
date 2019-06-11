@@ -16,9 +16,6 @@ var ErrInvalidClient = errors.New("consul client invalid")
 
 func Init() {
 	once.Do(func() {
-		// 先初始化配置
-		conf.Init()
-
 		consulAgent, _ := conf.GetString("service.consulAgent")
 		// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
 		config := api.DefaultConfig()
