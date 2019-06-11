@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
+	"github.com/obase/api/x"
 	"github.com/obase/log"
 	"net"
 	"net/http"
@@ -157,4 +158,4 @@ func Errorf(code int, format string, args ...interface{}) error {
 	}
 }
 
-var None = new(Void) // 定义空值
+var None = new(x.Void) // 定义空值
