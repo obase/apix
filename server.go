@@ -167,9 +167,6 @@ func (server *Server) Route(rf RouteFunc) {
 
 func (server *Server) Serve() error {
 
-	// 先初始化log
-	log.Init()
-
 	defer log.Flushf()
 
 	var operations []func()
