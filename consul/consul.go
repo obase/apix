@@ -16,22 +16,22 @@ var ErrInvalidClient = errors.New("consul client invalid")
 
 func Init() {
 	once.Do(func() {
-		consulAgent, _ := conf.GetString("service.consulAgent")
+		consulAddress, _ := conf.GetString("service.consulAddress")
 		// 默认127.0.0.1:8500, 如果设置为0.0.0.0或-表示不启用consul
 		config := api.DefaultConfig()
-		if consulAgent != "" {
-			config.Address = consulAgent
+		if consulAddress != "" {
+			config.Address = consulAddress
 		}
 		var err error
 		if client, err = api.NewClient(config); err != nil { // 兼容旧的逻辑
-			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+			log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAddress, err)
 			log.Flushf()
 		} else {
 			if _, err = client.Agent().Services(); err != nil {
-				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAgent, err)
+				log.Errorf(context.Background(), "Connect consul agent error: %s, %v", consulAddress, err)
 				log.Flushf()
 			} else {
-				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAgent)
+				log.Inforf(context.Background(), "Connect consul agent success: %s", consulAddress)
 				log.Flushf()
 			}
 		}
