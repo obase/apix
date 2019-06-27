@@ -18,7 +18,7 @@ type Conf struct {
 	WsReadBufferSize             int    `json:"wsReadBufferSize"`    // 默认4092
 	WsWriteBufferSize            int    `json:"wsWriteBufferSize"`   // 默认4092
 	WsNotCheckOrigin             bool   `json:"wsNotCheckOrigin"`    // 默认false
-	ConsulAgent                  string `json:"consulAgent"`         // 默认127.0.0.1:8500, 如果设成0.0.0.0表示禁用consul服务
+	ConsulAddress                string `json:"consulAddress"`       // 默认127.0.0.1:8500, 如果设成0.0.0.0表示禁用consul服务
 	ConsulCheckTimeoutHttp       string `json:"consulCheckTimeoutHttp"`
 	ConsulCheckIntervalHttp      string `json:"consulCheckIntervalHttp"`
 	ConsulCheckTimeoutGrpc       string `json:"consulCheckTimeoutGrpc"`

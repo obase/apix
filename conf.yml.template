@@ -25,4 +25,4 @@ service:
   # Websocket不校验origin
   wsNotCheckOrigin: false
   # consult 配置地址, 如果为空, 默认本机地址
-  centerAddress: "127.0.0.1"
+  consulAddress: "127.0.0.1"
