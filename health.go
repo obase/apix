@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
+func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 
 	httpServer.GET("/health", CheckHttpHealth)
 	regs := &center.Service{
@@ -36,7 +36,7 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
 	center.Register(regs, chks)
 }
 
-func registerServiceGrpc(grpcServer *grpc.Server, conf *Conf) {
+func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
@@ -57,7 +57,7 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Conf) {
 	center.Register(regs, chks)
 }
 
-func deregisterService(conf *Conf) {
+func deregisterService(conf *Config) {
 	center.Deregister(conf.GrpcName() + "@" + conf.GrpcAddr())
 	center.Deregister(conf.HttpName() + "@" + conf.HttpAddr())
 	// 兼容旧接口

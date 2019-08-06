@@ -117,7 +117,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 }
 
 // 创建upgrader
-func CreateSocketUpgrader(conf *Conf) *websocket.Upgrader {
+func CreateSocketUpgrader(conf *Config) *websocket.Upgrader {
 	upgrader := new(websocket.Upgrader)
 	if conf.WsReadBufferSize != 0 {
 		upgrader.ReadBufferSize = conf.WsReadBufferSize
