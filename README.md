@@ -1,5 +1,5 @@
 # package api apix
-包含api协定框架的元数据.
+包含api协定框架的元数据. 用户实现service, 轻松提供http, websocket, grpc等多种访问渠道.
 
 ## api框架的目录结构:
 ```
@@ -28,6 +28,16 @@ apigen用于api框架自动代码生成工具, 能大大减少代码编写量!
 在$GOPATH/bin查找编译后可执行文件apigen
 
 ## api框架的使用步骤
+1. 创建项目目录结构(见上), 所有接口proto文件必须放在api及其子包里.
+2. 打开DOS或Shell, 进入src目录, 即api父目录.
+```
+cd $project/src
+```
+3. 执行apigen命令,自动生成proto的代码文件并存于api对应目录内.
+```
+apigen
+```
+强烈建议不要手工修改$project/src/api目录里面的*.pb.go文件内容, 应该使用apigen工具维护.
 
 
 ## api框架的局限
