@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/obase/apix/grpc_health_v1"
 	"github.com/obase/center"
+	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"net/http"
 )
@@ -33,7 +34,11 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 	// 下述完全是兼容旧的服务注册逻辑
 	regs.Id = conf.Name + "@" + conf.HttpAddr()
 	regs.Name = conf.Name
-	center.Register(regs, chks)
+	if err := center.Register(regs, chks); err != nil {
+		log.Info(nil, "register service success, %v", *regs)
+	} else {
+		log.Error(nil, "register service error, %v, %v", *regs, err)
+	}
 }
 
 func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
@@ -54,7 +59,11 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 		Interval: conf.ConsulCheckIntervalHttp,
 	}
 
-	center.Register(regs, chks)
+	if err := center.Register(regs, chks); err != nil {
+		log.Info(nil, "register service success, %v", *regs)
+	} else {
+		log.Error(nil, "register service error, %v, %v", *regs, err)
+	}
 }
 
 func deregisterService(conf *Config) {
