@@ -29,12 +29,16 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 		Interval: conf.ConsulCheckIntervalHttp,
 	}
 
-	center.Register(regs, chks)
+	if err := center.Register(regs, chks); err == nil {
+		log.Info(nil, "register service success, %v", *regs)
+	} else {
+		log.Error(nil, "register service error, %v, %v", *regs, err)
+	}
 
 	// 下述完全是兼容旧的服务注册逻辑
 	regs.Id = conf.Name + "@" + conf.HttpAddr()
 	regs.Name = conf.Name
-	if err := center.Register(regs, chks); err != nil {
+	if err := center.Register(regs, chks); err == nil {
 		log.Info(nil, "register service success, %v", *regs)
 	} else {
 		log.Error(nil, "register service error, %v, %v", *regs, err)
@@ -59,7 +63,7 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 		Interval: conf.ConsulCheckIntervalHttp,
 	}
 
-	if err := center.Register(regs, chks); err != nil {
+	if err := center.Register(regs, chks); err == nil {
 		log.Info(nil, "register service success, %v", *regs)
 	} else {
 		log.Error(nil, "register service error, %v, %v", *regs, err)
