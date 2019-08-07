@@ -6,7 +6,7 @@ import (
 )
 
 /*服务配置,注意兼容性.Grpc服务添加前缀"grpc."*/
-type Conf struct {
+type Config struct {
 	Name                         string `json:"name"`                // 服务名称
 	Mode                         string `json:"mode"`                // 服务模式, 默认Release
 	HttpHost                     string `json:"httpHost"`            // 默认本机扫描到的第一个私用IP
@@ -27,32 +27,32 @@ type Conf struct {
 }
 
 // 兼容旧的命名逻辑, 不加任何后缀
-func (c *Conf) HttpName() string {
+func (c *Config) HttpName() string {
 	return c.Name + ".http"
 }
 
 // grpc后缀表示grpc服务
-func (c *Conf) GrpcName() string {
+func (c *Config) GrpcName() string {
 	return c.Name + ".grpc"
 }
 
-func (c *Conf) HttpAddr() string {
+func (c *Config) HttpAddr() string {
 	return fmt.Sprintf("%v:%v", c.HttpHost, c.HttpPort)
 }
 
-func (c *Conf) GrpcAddr() string {
+func (c *Config) GrpcAddr() string {
 	return fmt.Sprintf("%v:%v", c.GrpcHost, c.GrpcPort)
 }
 
-func NewConf() *Conf {
-	return &Conf{}
+func NewConf() *Config {
+	return &Config{}
 }
 
 // 合并默认值
-func MergeDefaultConfig(conf *Conf) *Conf {
+func MergeDefaultConfig(conf *Config) *Config {
 
 	if conf == nil {
-		conf = &Conf{}
+		conf = &Config{}
 	}
 
 	if conf.Mode == "" {

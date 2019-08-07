@@ -4,73 +4,64 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/hashicorp/consul/api"
-	"github.com/obase/apix/consul"
 	"github.com/obase/apix/grpc_health_v1"
+	"github.com/obase/center"
 	"google.golang.org/grpc"
 	"net/http"
 )
 
-func registerServiceHttp(httpServer *gin.Engine, conf *Conf) {
-
-	// 先初始化Consul
-	consul.Init()
+func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 
 	httpServer.GET("/health", CheckHttpHealth)
-
-	regs := &api.AgentServiceRegistration{
-		Kind:    api.ServiceKind("http"),
-		ID:      conf.HttpName() + "@" + conf.HttpAddr(),
-		Name:    conf.HttpName(),
-		Address: conf.HttpHost,
-		Port:    conf.HttpPort,
-		Tags:    []string{"http", conf.Name, conf.HttpName()},
-		Check: &api.AgentServiceCheck{
-			HTTP:                           fmt.Sprintf("http://%s/health", conf.HttpAddr()),
-			Timeout:                        conf.ConsulCheckTimeoutHttp,
-			Interval:                       conf.ConsulCheckIntervalHttp,
-			DeregisterCriticalServiceAfter: conf.ConsulDeregisterServiceAfter,
-		},
+	regs := &center.Service{
+		Id:   conf.HttpName() + "@" + conf.HttpAddr(),
+		Kind: "http",
+		Name: conf.HttpName(),
+		Host: conf.HttpHost,
+		Port: conf.HttpPort,
 	}
-	consul.RegisterService(regs)
+
+	chks := &center.Check{
+		Type:     "HTTP",
+		Target:   fmt.Sprintf("http://%s/health", conf.HttpAddr()),
+		Timeout:  conf.ConsulCheckTimeoutHttp,
+		Interval: conf.ConsulCheckIntervalHttp,
+	}
+
+	center.Register(regs, chks)
 
 	// 下述完全是兼容旧的服务注册逻辑
-	regs.ID = conf.Name + "@" + conf.HttpAddr()
+	regs.Id = conf.Name + "@" + conf.HttpAddr()
 	regs.Name = conf.Name
-	regs.Tags = []string{"http", conf.Name}
-	consul.RegisterService(regs)
-
+	center.Register(regs, chks)
 }
 
-func registerServiceGrpc(grpcServer *grpc.Server, conf *Conf) {
-
-	// 先初始化Consul
-	consul.Init()
+func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
-	regs := &api.AgentServiceRegistration{
-		Kind:    api.ServiceKind("grpc"),
-		ID:      conf.GrpcName() + "@" + conf.GrpcAddr(),
-		Name:    conf.GrpcName(),
-		Address: conf.GrpcHost,
-		Port:    conf.GrpcPort,
-		Tags:    []string{"grpc", conf.Name, conf.GrpcName()},
-		Check: &api.AgentServiceCheck{
-			GRPC:                           fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
-			Timeout:                        conf.ConsulCheckTimeoutGrpc,
-			Interval:                       conf.ConsulCheckIntervalGrpc,
-			DeregisterCriticalServiceAfter: conf.ConsulDeregisterServiceAfter,
-		},
+	regs := &center.Service{
+		Id:   conf.GrpcName() + "@" + conf.GrpcAddr(),
+		Kind: "grpc",
+		Name: conf.GrpcName(),
+		Host: conf.GrpcHost,
+		Port: conf.GrpcPort,
 	}
-	consul.RegisterService(regs)
+	chks := &center.Check{
+		Type:     "GRPC",
+		Target:   fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
+		Timeout:  conf.ConsulCheckTimeoutHttp,
+		Interval: conf.ConsulCheckIntervalHttp,
+	}
+
+	center.Register(regs, chks)
 }
 
-func deregisterService(conf *Conf) {
-	consul.DeregisterService(conf.GrpcName() + "@" + conf.GrpcAddr())
-	consul.DeregisterService(conf.HttpName() + "@" + conf.HttpAddr())
+func deregisterService(conf *Config) {
+	center.Deregister(conf.GrpcName() + "@" + conf.GrpcAddr())
+	center.Deregister(conf.HttpName() + "@" + conf.HttpAddr())
 	// 兼容旧接口
-	consul.DeregisterService(conf.Name + "@" + conf.HttpAddr())
+	center.Deregister(conf.Name + "@" + conf.HttpAddr())
 }
 
 func CheckHttpHealth(ctx *gin.Context) {

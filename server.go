@@ -34,7 +34,7 @@ func ParsingRequestError(err error, tag string) error {
 
 /*处理引擎*/
 type Server struct {
-	conf         *Conf           // conf.yml中配置数据
+	conf         *Config         // conf.yml中配置数据
 	init         map[string]bool // file初始化标志
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
@@ -317,7 +317,7 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 使用pbx区别业务项目的api库
 */
 
-func NewServerWith(c *Conf) *Server {
+func NewServerWith(c *Config) *Server {
 
 	server := new(Server)
 	server.conf = MergeDefaultConfig(c)
@@ -329,7 +329,7 @@ func NewServerWith(c *Conf) *Server {
 const CKEY = "service"
 
 func NewServer() *Server {
-	var cf *Conf
+	var cf *Config
 	if ok := conf.Scan(CKEY, &cf); ok {
 		return NewServerWith(cf)
 	}
