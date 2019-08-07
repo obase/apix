@@ -13,6 +13,8 @@ import (
 
 func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 
+	defer log.Flush()
+
 	httpServer.GET("/health", CheckHttpHealth)
 	regs := &center.Service{
 		Id:   conf.HttpName() + "@" + conf.HttpAddr(),
@@ -46,6 +48,8 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 }
 
 func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
+
+	defer log.Flush()
 
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
