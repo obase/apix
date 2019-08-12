@@ -7,8 +7,8 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/websocket v1.4.0
 	github.com/obase/api v1.0.0
-	github.com/obase/center v1.0.0
+	github.com/obase/center v1.2.0
 	github.com/obase/conf v1.0.0
-	github.com/obase/log v1.0.0
+	github.com/obase/log v1.2.0
 	google.golang.org/grpc v1.22.1
 )

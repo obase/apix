@@ -9,24 +9,26 @@ import (
 	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"net/http"
+	"strconv"
 )
 
 func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
-
 	defer log.Flush()
-
 	httpServer.GET("/health", CheckHttpHealth)
+
+	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
+	myname := center.HttpName(conf.Name)
 	regs := &center.Service{
-		Id:   conf.HttpName() + "@" + conf.HttpAddr(),
+		Id:   myname + suffix,
 		Kind: "http",
-		Name: conf.HttpName(),
+		Name: myname,
 		Host: conf.HttpHost,
 		Port: conf.HttpPort,
 	}
 
 	chks := &center.Check{
-		Type:     "HTTP",
-		Target:   fmt.Sprintf("http://%s/health", conf.HttpAddr()),
+		Type:     "http",
+		Target:   fmt.Sprintf("http://%s:%v/health", conf.HttpHost, conf.HttpPort),
 		Timeout:  conf.ConsulCheckTimeoutHttp,
 		Interval: conf.ConsulCheckIntervalHttp,
 	}
@@ -38,7 +40,7 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 	}
 
 	// 下述完全是兼容旧的服务注册逻辑
-	regs.Id = conf.Name + "@" + conf.HttpAddr()
+	regs.Id = conf.Name + suffix
 	regs.Name = conf.Name
 	if err := center.Register(regs, chks); err == nil {
 		log.Info(nil, "register service success, %v", *regs)
@@ -50,19 +52,21 @@ func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
 func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 
 	defer log.Flush()
-
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
+
+	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
+	myname := center.GrpcName(conf.Name)
 	regs := &center.Service{
-		Id:   conf.GrpcName() + "@" + conf.GrpcAddr(),
+		Id:   myname + suffix,
 		Kind: "grpc",
-		Name: conf.GrpcName(),
+		Name: myname,
 		Host: conf.GrpcHost,
 		Port: conf.GrpcPort,
 	}
 	chks := &center.Check{
-		Type:     "GRPC",
-		Target:   fmt.Sprintf("%v/%v", conf.GrpcAddr(), service),
+		Type:     "grpc",
+		Target:   fmt.Sprintf("%s:%v/%v", conf.GrpcHost, conf.GrpcPort, service),
 		Timeout:  conf.ConsulCheckTimeoutHttp,
 		Interval: conf.ConsulCheckIntervalHttp,
 	}
@@ -75,10 +79,11 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 }
 
 func deregisterService(conf *Config) {
-	center.Deregister(conf.GrpcName() + "@" + conf.GrpcAddr())
-	center.Deregister(conf.HttpName() + "@" + conf.HttpAddr())
-	// 兼容旧接口
-	center.Deregister(conf.Name + "@" + conf.HttpAddr())
+	// 统一删除
+	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
+	center.Deregister(conf.Name + suffix)
+	center.Deregister(center.HttpName(conf.Name) + suffix)
+	center.Deregister(center.GrpcName(conf.Name) + suffix)
 }
 
 func CheckHttpHealth(ctx *gin.Context) {

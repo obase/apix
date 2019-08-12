@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -192,7 +193,7 @@ func (server *Server) Serve() error {
 			registerServiceGrpc(grpcServer, server.conf)
 		}
 		// 创建监听端口
-		lis, err := net.Listen("tcp", server.conf.GrpcAddr())
+		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.GrpcHost, strconv.Itoa(server.conf.GrpcPort)))
 		if err != nil {
 			log.Errorf(context.Background(), "grpc server listen error: %v", err)
 			log.Flushf()
@@ -218,7 +219,7 @@ func (server *Server) Serve() error {
 		}
 		httpServer = &http.Server{Handler: ginEngine}
 		// 创建监听端口
-		lis, err := net.Listen("tcp", server.conf.HttpAddr())
+		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.HttpHost, strconv.Itoa(server.conf.HttpPort)))
 		if err != nil {
 			log.Errorf(context.Background(), "grpc server listen error: %v", err)
 			log.Flushf()
@@ -320,7 +321,7 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 func NewServerWith(c *Config) *Server {
 
 	server := new(Server)
-	server.conf = MergeDefaultConfig(c)
+	server.conf = mergeConfig(c)
 	server.init = make(map[string]bool)
 
 	return server
