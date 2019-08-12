@@ -168,7 +168,7 @@ func (server *Server) Route(rf RouteFunc) {
 
 func (server *Server) Serve() error {
 
-	defer log.Flushf()
+	defer log.Flush()
 
 	var operations []func()
 	var grpcServer *grpc.Server
@@ -195,15 +195,15 @@ func (server *Server) Serve() error {
 		// 创建监听端口
 		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.GrpcHost, strconv.Itoa(server.conf.GrpcPort)))
 		if err != nil {
-			log.Errorf(context.Background(), "grpc server listen error: %v", err)
-			log.Flushf()
+			log.Error(context.Background(), "grpc server listen error: %v", err)
+			log.Flush()
 			return err
 		}
 		// 启动grpc服务
 		operations = append(operations, func() {
 			if err = grpcServer.Serve(lis); err != nil {
-				log.Errorf(context.Background(), "grpc server serve error: %v", err)
-				log.Flushf()
+				log.Error(context.Background(), "grpc server serve error: %v", err)
+				log.Flush()
 				os.Exit(1)
 			}
 		})
@@ -221,8 +221,8 @@ func (server *Server) Serve() error {
 		// 创建监听端口
 		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.HttpHost, strconv.Itoa(server.conf.HttpPort)))
 		if err != nil {
-			log.Errorf(context.Background(), "grpc server listen error: %v", err)
-			log.Flushf()
+			log.Error(context.Background(), "grpc server listen error: %v", err)
+			log.Flush()
 			return err
 		}
 		kalis := &tcpKeepAliveListener{
@@ -237,8 +237,8 @@ func (server *Server) Serve() error {
 		}
 		operations = append(operations, func() {
 			if err := httpServer.Serve(kalis); err != nil {
-				log.Errorf(context.Background(), "http server serve error: %v", err)
-				log.Flushf()
+				log.Error(context.Background(), "http server serve error: %v", err)
+				log.Flush()
 				os.Exit(1)
 			}
 		})
