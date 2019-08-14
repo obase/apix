@@ -237,7 +237,7 @@ func (server *Server) Serve() error {
 		// 创建监听端口
 		httpListener, err = graceListenHttp(server.Config.HttpHost, server.Config.HttpPort)
 		if err != nil {
-			log.Error(context.Background(), "grpc server listen error: %v", err)
+			log.Error(context.Background(), "http server listen error: %v", err)
 			log.Flush()
 			return err
 		}
