@@ -137,6 +137,39 @@ func NewServer() *Server
 ```
 由conf.yml读取全瓿配置
 
+- func (server *Server) Setup
+```
+func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) 
+```
+将配置安装到外部的grpc或http服务器
+
+- type RouteFunc
+```
+type RouteFunc func(router gin.IRouter)
+```
+- func (server *Server) Route
+```
+func (server *Server) Route(rf RouteFunc) 
+```
+添加外部路由回调
+
+- type RegistFunc
+```
+type RegistFunc func(server *grpc.Server)
+```
+- func (server *Server) Regist
+```
+func (server *Server) Regist(rf RegistFunc) 
+```
+注册外部grpc服务回调
+
+
+- func (server *Server) Serve() 
+```
+func (server *Server) Serve() error 
+```
+启动服务
+
 # Examples
 proto
 ```
