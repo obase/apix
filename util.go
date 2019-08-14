@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	FLAG_ENV       = "__FLAG__"
-	FLAG_GRPC      = 0x01
-	FLAG_HTTP      = 0x02
-	FLAG_GRPC_HTTP = 0x03
+	GRACE_ENV  = "_GRC_"
+	GRACE_NONE = "0"
+	GRACE_GRPC = "1"
+	GRACE_HTTP = "2"
+	GRACE_ALL  = "3" // grpc是3, http是4
 )
 
 // TODO: 附加访问时长
