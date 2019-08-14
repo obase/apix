@@ -71,7 +71,7 @@ func graceShutdownOrRestart(grpcServer *grpc.Server, grpcListener net.Listener, 
 	sch := make(chan os.Signal, 1)
 	defer signal.Stop(sch)
 
-	signal.Notify(sch, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sch, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR2)
 	for {
 		sig := <-sch
 
