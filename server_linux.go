@@ -45,7 +45,7 @@ func graceListenGrpc(host string, port int) (net.Listener, error) {
 func graceListenHttp(host string, port int) (net.Listener, error) {
 	if flag != "" {
 		var (
-			grpcListner net.Listener
+			httpListner net.Listener
 			err         error
 			fd          uintptr
 		)
@@ -59,10 +59,10 @@ func graceListenHttp(host string, port int) (net.Listener, error) {
 		}
 		file := os.NewFile(fd, "")
 		defer file.Close()
-		if grpcListner, err = net.FileListener(file); err != nil {
+		if httpListner, err = net.FileListener(file); err != nil {
 			log.Error(nil, "FileListener error: %v", err)
 		}
-		return grpcListner, err
+		return httpListner, err
 	}
 	return net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 }
