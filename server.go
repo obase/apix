@@ -209,7 +209,7 @@ func (server *Server) Serve() error {
 			registerServiceGrpc(grpcServer, server.Config)
 		}
 		// 创建监听端口
-		grpcListener, err = graceListenGrpc("tcp", server.Config.GrpcHost, server.Config.GrpcPort)
+		grpcListener, err = graceListenGrpc(server.Config.GrpcHost, server.Config.GrpcPort)
 		if err != nil {
 			log.Error(nil, "grpc server listen error: %v", err)
 			log.Flush()
@@ -235,7 +235,7 @@ func (server *Server) Serve() error {
 		}
 		httpServer = &http.Server{Handler: httpRouter}
 		// 创建监听端口
-		httpListener, err = graceListenHttp("tcp", server.Config.HttpHost, server.Config.HttpPort)
+		httpListener, err = graceListenHttp(server.Config.HttpHost, server.Config.HttpPort)
 		if err != nil {
 			log.Error(context.Background(), "grpc server listen error: %v", err)
 			log.Flush()

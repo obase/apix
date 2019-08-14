@@ -12,12 +12,12 @@ import (
 	"syscall"
 )
 
-func graceListenGrpc(network string, host string, port int) (net.Listener, error) {
-	return net.Listen(network, net.JoinHostPort(host, strconv.Itoa(port)))
+func graceListenGrpc(host string, port int) (net.Listener, error) {
+	return net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 }
 
-func graceListenHttp(network string, host string, port int) (net.Listener, error) {
-	return net.Listen(network, net.JoinHostPort(host, strconv.Itoa(port)))
+func graceListenHttp(host string, port int) (net.Listener, error) {
+	return net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 }
 
 func graceShutdownOrRestart(grpcServer *grpc.Server, grpcListener net.Listener, httpServer *http.Server, httpListener net.Listener) {

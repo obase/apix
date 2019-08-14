@@ -9,6 +9,6 @@ require (
 	github.com/obase/api v1.0.0
 	github.com/obase/center v1.2.0
 	github.com/obase/conf v1.0.0
-	github.com/obase/log v1.2.0
+	github.com/obase/log v1.2.1
 	google.golang.org/grpc v1.22.1
 )

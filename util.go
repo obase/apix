@@ -13,10 +13,17 @@ import (
 	"time"
 )
 
+const (
+	FLAG_ENV       = "__FLAG__"
+	FLAG_GRPC      = 0x01
+	FLAG_HTTP      = 0x02
+	FLAG_GRPC_HTTP = 0x03
+)
+
 // TODO: 附加访问时长
 func RecoverHandleFunc(c *gin.Context) {
 	if perr := recover(); perr != nil {
-		log.Errorf(c, "recover error: %v", perr)
+		log.ErrorStack(c, fmt.Errorf("panic error: uri=%v, err=%v", c.Request.RequestURI, perr), false) // 打印堆栈错误
 	}
 }
 
