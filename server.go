@@ -13,16 +13,13 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"strconv"
-	"sync"
-	"syscall"
 	"time"
 )
 
 /*方法处理原型*/
 type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
-type RouteFunc func(engine *gin.Engine)
+type RouteFunc func(router gin.IRouter)
+type RegistFunc func(server *grpc.Server)
 
 /*封装错误类型*/
 func ParsingRequestError(err error, tag string) error {
@@ -35,14 +32,16 @@ func ParsingRequestError(err error, tag string) error {
 
 /*处理引擎*/
 type Server struct {
-	conf         *Config         // conf.yml中配置数据
+	*Config                      // conf.yml中配置数据
 	init         map[string]bool // file初始化标志
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
 	services     []*Service
 	routeFunc    RouteFunc
+	registFunc   RegistFunc
 }
 
+/*用于apigen工具的方法*/
 func (s *Server) Init(f func(server *Server)) {
 	k := fmt.Sprintf("%p", f)
 	if _, ok := s.init[k]; ok {
@@ -119,67 +118,84 @@ func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
 	gm.socketFilter = append(gm.socketFilter, hf)
 }
 
-// 安装grpc的配置
-func (server *Server) Setup(grpcServer *grpc.Server, httpServer *gin.Engine) {
+/* 补充gin的IRouter路由信息*/
+func (server *Server) Route(rf RouteFunc) {
+	server.routeFunc = rf
+}
+
+func (server *Server) Regist(rf RegistFunc) {
+	server.registFunc = rf
+}
+
+/*安装*/
+func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 
 	// 安装grpc相关配置
 	if grpcServer != nil {
 		for _, smeta := range server.services {
 			grpcServer.RegisterService(smeta.serviceDesc, smeta.serviceImpl)
 		}
+		if server.registFunc != nil {
+			// 附加额外的Grpc设置,预防额外逻辑
+			server.registFunc(grpcServer)
+		}
 	}
 
 	// 安装http相关配置
-	if httpServer != nil {
+	if httpRouter != nil {
 		var upgrader *websocket.Upgrader
 		for _, smeta := range server.services {
-			var router gin.IRouter
 			if smeta.groupPath != "" {
-				router = httpServer.Group(smeta.groupPath, smeta.groupFilter...)
-			} else {
-				router = httpServer
+				httpRouter = httpRouter.Group(smeta.groupPath, smeta.groupFilter...)
 			}
 			for _, mmeta := range smeta.methods {
 				// POST handle
 				if mmeta.handlePath != "" {
 					handlers := append(mmeta.handleFilter, CreateHandleFunc(mmeta.adapter, mmeta.tag))
-					router.POST(mmeta.handlePath, handlers...)
+					httpRouter.POST(mmeta.handlePath, handlers...)
 				}
 				// GET socket
 				if mmeta.socketPath != "" {
 					if upgrader == nil {
-						upgrader = CreateSocketUpgrader(server.conf)
+						upgrader = CreateSocketUpgrader(server.Config)
 					}
 					handlers := append(mmeta.socketFilter, CreateSocketFunc(upgrader, mmeta.adapter, mmeta.tag))
-					router.GET(mmeta.socketPath, handlers...)
+					httpRouter.GET(mmeta.socketPath, handlers...)
 				}
 			}
 		}
 		if server.routeFunc != nil {
 			// 附加额外的API设置,预防额外逻辑
-			server.routeFunc(httpServer)
+			server.routeFunc(httpRouter)
 		}
 	}
 
 }
-func (server *Server) Route(rf RouteFunc) {
-	server.routeFunc = rf
-}
 
 func (server *Server) Serve() error {
 
-	defer log.Flush()
+	defer func() {
+		log.Flush()
+		// 反注册consul服务,另外还设定了超时反注册,双重保障
+		if server.Config.Name != "" {
+			deregisterService(server.Config)
+		}
+	}()
 
-	var operations []func()
-	var grpcServer *grpc.Server
-	var httpServer *http.Server
-	var ginEngine *gin.Engine
-
+	var (
+		operations   []func()
+		grpcServer   *grpc.Server
+		grpcListener net.Listener
+		httpServer   *http.Server
+		httpListener net.Listener
+		httpRouter   *gin.Engine
+		err          error
+	)
 	// 创建grpc服务器
-	if server.conf.GrpcPort > 0 {
+	if server.Config.GrpcPort > 0 {
 		// 设置keepalive超时
-		if server.conf.GrpcKeepAlivePeriod != "" {
-			if period, err := time.ParseDuration(server.conf.GrpcKeepAlivePeriod); err != nil {
+		if server.Config.GrpcKeepAlivePeriod != "" {
+			if period, err := time.ParseDuration(server.Config.GrpcKeepAlivePeriod); err != nil {
 				return err
 			} else {
 				server.serverOption = append(server.serverOption, grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -189,20 +205,20 @@ func (server *Server) Serve() error {
 		}
 		grpcServer = grpc.NewServer(server.serverOption...)
 		// 注册grpc服务
-		if server.conf.Name != "" {
-			registerServiceGrpc(grpcServer, server.conf)
+		if server.Config.Name != "" {
+			registerServiceGrpc(grpcServer, server.Config)
 		}
 		// 创建监听端口
-		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.GrpcHost, strconv.Itoa(server.conf.GrpcPort)))
+		grpcListener, err = graceListenGrpc("tcp", server.Config.GrpcHost, server.Config.GrpcPort)
 		if err != nil {
-			log.Error(context.Background(), "grpc server listen error: %v", err)
+			log.Error(nil, "grpc server listen error: %v", err)
 			log.Flush()
 			return err
 		}
 		// 启动grpc服务
 		operations = append(operations, func() {
-			if err = grpcServer.Serve(lis); err != nil {
-				log.Error(context.Background(), "grpc server serve error: %v", err)
+			if err = grpcServer.Serve(grpcListener); err != nil {
+				log.Error(nil, "grpc server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
@@ -210,26 +226,26 @@ func (server *Server) Serve() error {
 	}
 
 	// 创建http服务器
-	if server.conf.HttpPort > 0 {
-		ginEngine = gin.New()
-		ginEngine.Use(server.middleFilter...)
+	if server.Config.HttpPort > 0 {
+		httpRouter = gin.New()
+		httpRouter.Use(server.middleFilter...)
 		// 注册http检查
-		if server.conf.Name != "" {
-			registerServiceHttp(ginEngine, server.conf)
+		if server.Config.Name != "" {
+			registerServiceHttp(httpRouter, server.Config)
 		}
-		httpServer = &http.Server{Handler: ginEngine}
+		httpServer = &http.Server{Handler: httpRouter}
 		// 创建监听端口
-		lis, err := net.Listen("tcp", net.JoinHostPort(server.conf.HttpHost, strconv.Itoa(server.conf.HttpPort)))
+		httpListener, err = graceListenHttp("tcp", server.Config.HttpHost, server.Config.HttpPort)
 		if err != nil {
 			log.Error(context.Background(), "grpc server listen error: %v", err)
 			log.Flush()
 			return err
 		}
 		kalis := &tcpKeepAliveListener{
-			TCPListener: lis.(*net.TCPListener),
+			TCPListener: httpListener.(*net.TCPListener),
 		}
-		if server.conf.HttpKeepAlivePeriod != "" {
-			if period, err := time.ParseDuration(server.conf.HttpKeepAlivePeriod); err != nil {
+		if server.Config.HttpKeepAlivePeriod != "" {
+			if period, err := time.ParseDuration(server.Config.HttpKeepAlivePeriod); err != nil {
 				return err
 			} else {
 				kalis.keepAlivePeriod = period
@@ -237,7 +253,7 @@ func (server *Server) Serve() error {
 		}
 		operations = append(operations, func() {
 			if err := httpServer.Serve(kalis); err != nil {
-				log.Error(context.Background(), "http server serve error: %v", err)
+				log.Error(nil, "http server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
@@ -245,7 +261,7 @@ func (server *Server) Serve() error {
 	}
 
 	// 安装protobuf元配置
-	server.Setup(grpcServer, ginEngine)
+	server.Setup(grpcServer, httpRouter)
 
 	// 后置执行操作
 	for _, opt := range operations {
@@ -253,79 +269,14 @@ func (server *Server) Serve() error {
 	}
 
 	// 优雅关闭http与grpc服务
-	sch := make(chan os.Signal, 1)
-	signal.Notify(sch, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
-_EXIT:
-	for {
-		sig := <-sch
-
-		switch sig {
-		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM:
-			ws := new(sync.WaitGroup)
-			if httpServer != nil {
-				ws.Add(1)
-				go func(ws *sync.WaitGroup) {
-					defer ws.Done()
-					httpServer.Shutdown(context.Background())
-				}(ws)
-			}
-			if grpcServer != nil {
-				ws.Add(1)
-				go func(ws *sync.WaitGroup) {
-					defer ws.Done()
-					grpcServer.GracefulStop()
-				}(ws)
-			}
-			ws.Wait()
-			break _EXIT
-		}
-	}
-
-	// 反注册consul服务,另外还设定了超时反注册,双重保障
-	if server.conf.Name != "" {
-		deregisterService(server.conf)
-	}
+	graceShutdownOrRestart(grpcServer, grpcListener, httpServer, httpListener)
 
 	return nil
-}
-
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by ListenAndServe and ListenAndServeTLS so
-// dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away.
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-	keepAlivePeriod time.Duration
-}
-
-func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return nil, err
-	}
-	if ln.keepAlivePeriod > 0 {
-		tc.SetKeepAlive(true)
-		tc.SetKeepAlivePeriod(ln.keepAlivePeriod)
-	} else {
-		// 用回http.Server默认设置
-		tc.SetKeepAlive(true)
-		tc.SetKeepAlivePeriod(3 * time.Minute)
-	}
-	return tc, nil
 }
 
 /*
 使用pbx区别业务项目的api库
 */
-
-func NewServerWith(c *Config) *Server {
-
-	server := new(Server)
-	server.conf = mergeConfig(c)
-	server.init = make(map[string]bool)
-
-	return server
-}
 
 const CKEY = "service"
 
@@ -335,4 +286,13 @@ func NewServer() *Server {
 		return NewServerWith(cf)
 	}
 	return NewServerWith(nil)
+}
+
+func NewServerWith(c *Config) *Server {
+
+	server := new(Server)
+	server.Config = mergeConfig(c)
+	server.init = make(map[string]bool)
+
+	return server
 }

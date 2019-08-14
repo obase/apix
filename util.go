@@ -10,6 +10,7 @@ import (
 	"github.com/obase/log"
 	"net"
 	"net/http"
+	"time"
 )
 
 // TODO: 附加访问时长
@@ -159,3 +160,28 @@ func Errorf(code int, format string, args ...interface{}) error {
 }
 
 var None = new(x.Void) // 定义空值
+
+// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
+// connections. It's used by ListenAndServe and ListenAndServeTLS so
+// dead TCP connections (e.g. closing laptop mid-download) eventually
+// go away.
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+	keepAlivePeriod time.Duration
+}
+
+func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return nil, err
+	}
+	if ln.keepAlivePeriod > 0 {
+		tc.SetKeepAlive(true)
+		tc.SetKeepAlivePeriod(ln.keepAlivePeriod)
+	} else {
+		// 用回http.Server默认设置
+		tc.SetKeepAlive(true)
+		tc.SetKeepAlivePeriod(3 * time.Minute)
+	}
+	return tc, nil
+}

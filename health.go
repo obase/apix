@@ -12,9 +12,9 @@ import (
 	"strconv"
 )
 
-func registerServiceHttp(httpServer *gin.Engine, conf *Config) {
+func registerServiceHttp(httpRouter gin.IRouter, conf *Config) {
 	defer log.Flush()
-	httpServer.GET("/health", CheckHttpHealth)
+	httpRouter.GET("/health", CheckHttpHealth)
 
 	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
 	myname := center.HttpName(conf.Name)
