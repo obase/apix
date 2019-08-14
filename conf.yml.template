@@ -16,8 +16,6 @@ service:
   # consul健康检查超时及间隔
   grpcCheckTimeout: "5s"
   grpcCheckInterval: "6s"
-  # 启动模式: DEBUG, TEST, RELEASE
-  mode: "DEBUG"
   # Weboscket读缓存大小
   wsReadBufferSize: 8092
   # Websocket写缓存大小

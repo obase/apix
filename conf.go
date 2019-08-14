@@ -1,13 +1,8 @@
 package apix
 
-import (
-	"github.com/gin-gonic/gin"
-)
-
 /*服务配置,注意兼容性.Grpc服务添加前缀"grpc."*/
 type Config struct {
 	Name                         string `json:"name" bson:"name" yaml:"name"`                                              // 服务名称
-	Mode                         string `json:"mode" bson:"mode" yaml:"mode"`                                              // 服务模式, 默认Release
 	HttpHost                     string `json:"httpHost" bson:"httpHost" yaml:"httpHost"`                                  // 默认本机扫描到的第一个私用IP
 	HttpPort                     int    `json:"httpPort" bson:"httpPort" yaml:"httpPort"`                                  // 若为空表示不启用http server
 	HttpKeepAlivePeriod          string `json:"httpKeepAlivePeriod" bson:"httpKeepAlivePeriod" yaml:"httpKeepAlivePeriod"` // 默认不启用
@@ -32,9 +27,6 @@ func mergeConfig(conf *Config) *Config {
 		conf = &Config{}
 	}
 
-	if conf.Mode == "" {
-		conf.Mode = gin.ReleaseMode
-	}
 	// 补充默认逻辑
 	if conf.HttpHost == "" {
 		conf.HttpHost = PrivateAddress

@@ -227,6 +227,7 @@ func (server *Server) Serve() error {
 
 	// 创建http服务器
 	if server.Config.HttpPort > 0 {
+		gin.SetMode(gin.ReleaseMode)
 		httpRouter = gin.New()
 		httpRouter.Use(server.middleFilter...)
 		// 注册http检查
