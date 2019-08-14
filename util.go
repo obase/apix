@@ -10,6 +10,7 @@ import (
 	"github.com/obase/log"
 	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -192,4 +193,9 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 		tc.SetKeepAlivePeriod(3 * time.Minute)
 	}
 	return tc, nil
+}
+
+func GetFile(l net.Listener) *os.File {
+	file, _ := l.(*net.TCPListener).File()
+	return file
 }
