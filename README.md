@@ -1,5 +1,16 @@
 # package api apix
-包含api协定框架的元数据. 用户实现service, 轻松提供http, websocket, grpc等多种访问渠道.
+包含api协定框架的元数据. 用户实现service, 轻松提供http, websocket, grpc等多种访问渠道. 
+
+
+## 支持优雅关闭/重启:
+1. graceful shutdown: windows, linux, darwin
+```
+kill -HUP/-INT/-TERM <pid>, 或者kill <pid>
+```
+2. graceful restart: linux, darwing
+```
+kill -USR2 <pid>
+```
 
 ## api框架的目录结构:
 ```
