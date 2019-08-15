@@ -18,8 +18,6 @@ import (
 
 /*方法处理原型*/
 type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
-type RouteFunc func(router gin.IRouter)
-type RegistFunc func(server *grpc.Server)
 
 /*封装错误类型*/
 func ParsingRequestError(err error, tag string) error {
@@ -37,8 +35,8 @@ type Server struct {
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
 	services     []*Service
-	routeFunc    RouteFunc
-	registFunc   RegistFunc
+	routeFunc    func(router gin.IRouter)
+	registFunc   func(server *grpc.Server)
 }
 
 /*用于apigen工具的方法*/
@@ -119,11 +117,11 @@ func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
 }
 
 /* 补充gin的IRouter路由信息*/
-func (server *Server) Route(rf RouteFunc) {
+func (server *Server) Route(rf func(router gin.IRouter)) {
 	server.routeFunc = rf
 }
 
-func (server *Server) Regist(rf RegistFunc) {
+func (server *Server) Regist(rf func(server *grpc.Server)) {
 	server.registFunc = rf
 }
 
@@ -179,7 +177,7 @@ func (server *Server) Serve() error {
 		grpcServer   *grpc.Server
 		grpcListener net.Listener
 		httpServer   *http.Server
-		httpListener net.Listener
+		httpListener *tcpKeepAliveListener
 		httpRouter   *gin.Engine
 		err          error
 	)
@@ -250,18 +248,15 @@ func (server *Server) Serve() error {
 			log.Flush()
 			return err
 		}
-		kalis := &tcpKeepAliveListener{
-			TCPListener: httpListener.(*net.TCPListener),
-		}
 		if server.Config.HttpKeepAlivePeriod != "" {
 			if period, err := time.ParseDuration(server.Config.HttpKeepAlivePeriod); err != nil {
 				return err
 			} else {
-				kalis.keepAlivePeriod = period
+				httpListener.keepAlivePeriod = period
 			}
 		}
 		operations = append(operations, func() {
-			if err := httpServer.Serve(kalis); err != nil {
+			if err := httpServer.Serve(httpListener); err != nil {
 				log.Error(nil, "http server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
