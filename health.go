@@ -29,8 +29,8 @@ func registerServiceHttp(httpRouter gin.IRouter, conf *Config) {
 	chks := &center.Check{
 		Type:     "http",
 		Target:   fmt.Sprintf("http://%s:%v/health", conf.HttpHost, conf.HttpPort),
-		Timeout:  conf.ConsulCheckTimeoutHttp,
-		Interval: conf.ConsulCheckIntervalHttp,
+		Timeout:  conf.HttpCheckTimeout,
+		Interval: conf.HttpCheckInterval,
 	}
 
 	if err := center.Register(regs, chks); err == nil {
@@ -67,8 +67,8 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 	chks := &center.Check{
 		Type:     "grpc",
 		Target:   fmt.Sprintf("%s:%v/%v", conf.GrpcHost, conf.GrpcPort, service),
-		Timeout:  conf.ConsulCheckTimeoutHttp,
-		Interval: conf.ConsulCheckIntervalHttp,
+		Timeout:  conf.GrpcCheckTimeout,
+		Interval: conf.GrpcCheckInterval,
 	}
 
 	if err := center.Register(regs, chks); err == nil {

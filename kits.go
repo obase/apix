@@ -50,7 +50,7 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 					Tag:  tag,
 				})
 			} else {
-				log.Errorf(c, "%s execute service: %v", tag, err)
+				log.Error(c, "%s execute service: %v", tag, err)
 				if ersp, ok := err.(*api.Response); ok {
 					wdata, _ = json.Marshal(ersp)
 				} else {
@@ -62,7 +62,7 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 				}
 			}
 		} else {
-			log.Errorf(c, "%s reading request: %v", tag, err)
+			log.Error(c, "%s reading request: %v", tag, err)
 			wdata, _ = json.Marshal(&api.Response{
 				Code: api.READING_REQUEST_ERROR,
 				Msg:  err.Error(),
@@ -82,7 +82,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
-			log.Errorf(c, "upgrade connection: %v", tag, err)
+			log.Error(c, "upgrade connection: %v", tag, err)
 			return
 		}
 		for {
@@ -95,7 +95,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 			)
 			mtype, rdata, err = conn.ReadMessage()
 			if err != nil {
-				log.Errorf(c, "%s reading message: %v", tag, err)
+				log.Error(c, "%s reading message: %v", tag, err)
 				return
 			}
 			rsp, err = af(c, rdata)
@@ -106,7 +106,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 					Tag:  tag,
 				})
 			} else {
-				log.Errorf(c, "%s execute service: %v", tag, err)
+				log.Error(c, "%s execute service: %v", tag, err)
 				if ersp, ok := err.(*api.Response); ok {
 					wdata, _ = json.Marshal(ersp)
 				} else {
@@ -119,7 +119,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 			}
 			err = conn.WriteMessage(mtype, wdata)
 			if err != nil {
-				log.Errorf(c, "%s writing message: %v", tag, err)
+				log.Error(c, "%s writing message: %v", tag, err)
 				return
 			}
 		}
@@ -129,13 +129,13 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 // 创建upgrader
 func CreateSocketUpgrader(conf *Config) *websocket.Upgrader {
 	upgrader := new(websocket.Upgrader)
-	if conf.WsReadBufferSize != 0 {
-		upgrader.ReadBufferSize = conf.WsReadBufferSize
+	if conf.WbskReadBufferSize != 0 {
+		upgrader.ReadBufferSize = conf.WbskReadBufferSize
 	}
-	if conf.WsWriteBufferSize != 0 {
-		upgrader.WriteBufferSize = conf.WsWriteBufferSize
+	if conf.WbskWriteBufferSize != 0 {
+		upgrader.WriteBufferSize = conf.WbskWriteBufferSize
 	}
-	if conf.WsNotCheckOrigin {
+	if conf.WbskNotCheckOrigin {
 		upgrader.CheckOrigin = func(r *http.Request) bool {
 			return true
 		}

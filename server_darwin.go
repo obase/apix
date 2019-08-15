@@ -42,7 +42,7 @@ func graceListenGrpc(host string, port int) (net.Listener, error) {
 	return net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 }
 
-func graceListenHttp(host string, port int) (*tcpKeepAliveListener, error) {
+func graceListenHttp(host string, port int, keepalive time.Duration) (net.Listener, error) {
 	if flag != "" {
 		var (
 			httpListner net.Listener
@@ -69,10 +69,10 @@ func graceListenHttp(host string, port int) (*tcpKeepAliveListener, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tcpKeepAliveListener{TCPListener: tln.(*net.TCPListener)}, nil
+	return &tcpKeepAliveListener{TCPListener: tln.(*net.TCPListener), keepAlivePeriod: keepalive}, nil
 }
 
-func graceShutdownOrRestart(grpcServer *grpc.Server, grpcListener net.Listener, httpServer *http.Server, httpListener *tcpKeepAliveListener) {
+func graceShutdownOrRestart(grpcServer *grpc.Server, grpcListener net.Listener, httpServer *http.Server, httpListener net.Listener) {
 	sch := make(chan os.Signal, 1)
 	defer signal.Stop(sch)
 

@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 )
 
 /*方法处理原型*/
@@ -177,7 +176,7 @@ func (server *Server) Serve() error {
 		grpcServer   *grpc.Server
 		grpcListener net.Listener
 		httpServer   *http.Server
-		httpListener *tcpKeepAliveListener
+		httpListener net.Listener
 		httpRouter   *gin.Engine
 		err          error
 	)
@@ -200,14 +199,10 @@ func (server *Server) Serve() error {
 	// 创建grpc服务器
 	if server.Config.GrpcPort > 0 {
 		// 设置keepalive超时
-		if server.Config.GrpcKeepAlivePeriod != "" {
-			if period, err := time.ParseDuration(server.Config.GrpcKeepAlivePeriod); err != nil {
-				return err
-			} else {
-				server.serverOption = append(server.serverOption, grpc.KeepaliveParams(keepalive.ServerParameters{
-					Time: period,
-				}))
-			}
+		if server.Config.GrpcKeepAlive != 0 {
+			server.serverOption = append(server.serverOption, grpc.KeepaliveParams(keepalive.ServerParameters{
+				Time: server.Config.GrpcKeepAlive,
+			}))
 		}
 		grpcServer = grpc.NewServer(server.serverOption...)
 		// 注册grpc服务
@@ -242,18 +237,11 @@ func (server *Server) Serve() error {
 		}
 		httpServer = &http.Server{Handler: httpRouter}
 		// 创建监听端口
-		httpListener, err = graceListenHttp(server.Config.HttpHost, server.Config.HttpPort)
+		httpListener, err = graceListenHttp(server.Config.HttpHost, server.Config.HttpPort, server.Config.HttpKeepAlive)
 		if err != nil {
 			log.Error(context.Background(), "http server listen error: %v", err)
 			log.Flush()
 			return err
-		}
-		if server.Config.HttpKeepAlivePeriod != "" {
-			if period, err := time.ParseDuration(server.Config.HttpKeepAlivePeriod); err != nil {
-				return err
-			} else {
-				httpListener.keepAlivePeriod = period
-			}
 		}
 		operations = append(operations, func() {
 			if err := httpServer.Serve(httpListener); err != nil {

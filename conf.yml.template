@@ -2,26 +2,31 @@
 service:
   # 服务名称, 自动注册<name>, <name>.http, <name>.grpc三种服务
   name: "demo"
+
   # Http请求(post请求及websocket请求)主机, 如果为空, 默认本机首个私有IP
   httpHost: "127.0.0.1"
   # Http请求(post请求及websocket请求)端口, 如果为空, 则不启动Http服务器
   httpPort: 8000
   # consul健康检查超时及间隔. 默认5s与6s
+  httpKeepAlive: "5m"
   httpCheckTimeout: "5s"
   httpCheckInterval: "6s"
+  # Weboscket读缓存大小
+  wbskReadBufferSize: 8092
+  # Websocket写缓存大小
+  wbskWriteBufferSize: 8092
+  # Websocket不校验origin
+  wbskNotCheckOrigin: false
+
   # Grpc请求主机, 如果为空, 默认本机首个私有IP
   grpcHost: "127.0.0.1"
   # Grpc请求端口, 如果为空, 则不启动Grpc服务器
   grpcPort: 8100
   # consul健康检查超时及间隔
+  grpcKeepAlive: "5m"
   grpcCheckTimeout: "5s"
   grpcCheckInterval: "6s"
-  # Weboscket读缓存大小
-  wsReadBufferSize: 8092
-  # Websocket写缓存大小
-  wsWriteBufferSize: 8092
-  # Websocket不校验origin
-  wsNotCheckOrigin: false
+
   # consult 配置地址, 默认不启动.也支持
   # center:
   #   address: "127.0.0.1:8500"
