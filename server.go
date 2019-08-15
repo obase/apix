@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
-	"github.com/obase/conf"
 	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -171,6 +170,10 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 
 func (server *Server) Serve() error {
 
+	if server.Config.GrpcPort == 0 && server.Config.HttpPort == 0 {
+		return nil
+	}
+
 	var (
 		operations   []func()
 		grpcServer   *grpc.Server
@@ -270,21 +273,13 @@ func (server *Server) Serve() error {
 使用pbx区别业务项目的api库
 */
 
-const CKEY = "service"
-
 func NewServer() *Server {
-	var cf *Config
-	if ok := conf.Scan(CKEY, &cf); ok {
-		return NewServerWith(cf)
-	}
-	return NewServerWith(nil)
+	return NewServerWith(LoadConfig())
 }
 
 func NewServerWith(c *Config) *Server {
-
-	server := new(Server)
-	server.Config = mergeConfig(c)
-	server.init = make(map[string]bool)
-
-	return server
+	return &Server{
+		Config: mergeConfig(c),
+		init:   make(map[string]bool),
+	}
 }

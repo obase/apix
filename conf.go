@@ -1,6 +1,9 @@
 package apix
 
-import "time"
+import (
+	"github.com/obase/conf"
+	"time"
+)
 
 /*服务配置,注意兼容性.Grpc服务添加前缀"grpc."*/
 type Config struct {
@@ -18,6 +21,16 @@ type Config struct {
 	GrpcKeepAlive       time.Duration `json:"grpcKeepAlive" bson:"grpcKeepAlive" yaml:"grpcKeepAlive"`                   // 默认不启用
 	GrpcCheckTimeout    string        `json:"grpcCheckTimeout" bson:"grpcCheckTimeout" yaml:"grpcCheckTimeout"`
 	GrpcCheckInterval   string        `json:"grpcCheckInterval" bson:"grpcCheckInterval" yaml:"grpcCheckInterval"`
+}
+
+const CKEY = "service"
+
+func LoadConfig() (*Config) {
+	var config *Config
+	if ok := conf.Scan(CKEY, &config); !ok {
+		return nil
+	}
+	return config
 }
 
 // 合并默认值
