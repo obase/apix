@@ -39,7 +39,11 @@ func graceListenGrpc(host string, port int) (net.Listener, error) {
 		}
 		return grpcListner, err
 	}
-	return net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	tln, err := net.Listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	if err != nil {
+		return nil, err
+	}
+	return tcpKeepAliveListener{TCPListener: tln.(*net.TCPListener)}, nil
 }
 
 func graceListenHttp(host string, port int) (net.Listener, error) {

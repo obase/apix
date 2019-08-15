@@ -174,14 +174,6 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 
 func (server *Server) Serve() error {
 
-	defer func() {
-		log.Flush()
-		// 反注册consul服务,另外还设定了超时反注册,双重保障
-		if server.Config.Name != "" {
-			deregisterService(server.Config)
-		}
-	}()
-
 	var (
 		operations   []func()
 		grpcServer   *grpc.Server
@@ -191,6 +183,22 @@ func (server *Server) Serve() error {
 		httpRouter   *gin.Engine
 		err          error
 	)
+
+	defer func() {
+		log.Flush()
+		// 反注册consul服务,另外还设定了超时反注册,双重保障
+		if server.Config.Name != "" {
+			deregisterService(server.Config)
+		}
+		// 退出需要明确关闭
+		if grpcListener != nil {
+			grpcListener.Close()
+		}
+		if httpListener != nil {
+			httpListener.Close()
+		}
+	}()
+
 	// 创建grpc服务器
 	if server.Config.GrpcPort > 0 {
 		// 设置keepalive超时
