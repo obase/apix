@@ -16,19 +16,24 @@ func registerServiceHttp(httpRouter gin.IRouter, conf *Config) {
 	defer log.Flush()
 	httpRouter.GET("/health", CheckHttpHealth)
 
-	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
+	realHttpHost := conf.HttpHost
+	if realHttpHost == "" {
+		realHttpHost = PrivateAddress
+	}
+
+	suffix := "@" + realHttpHost + ":" + strconv.Itoa(conf.HttpPort)
 	myname := center.HttpName(conf.Name)
 	regs := &center.Service{
 		Id:   myname + suffix,
 		Kind: "http",
 		Name: myname,
-		Host: conf.HttpHost,
+		Host: realHttpHost,
 		Port: conf.HttpPort,
 	}
 
 	chks := &center.Check{
 		Type:     "http",
-		Target:   fmt.Sprintf("http://%s:%v/health", conf.HttpHost, conf.HttpPort),
+		Target:   fmt.Sprintf("http://%s:%v/health", realHttpHost, conf.HttpPort),
 		Timeout:  conf.HttpCheckTimeout,
 		Interval: conf.HttpCheckInterval,
 	}
@@ -55,18 +60,22 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 	service := &HealthService{}
 	grpc_health_v1.RegisterHealthServer(grpcServer, service)
 
-	suffix := "@" + conf.HttpHost + ":" + strconv.Itoa(conf.HttpPort)
+	realGrpcHost := conf.GrpcHost
+	if realGrpcHost == "" {
+		realGrpcHost = PrivateAddress
+	}
+	suffix := "@" + realGrpcHost + ":" + strconv.Itoa(conf.HttpPort)
 	myname := center.GrpcName(conf.Name)
 	regs := &center.Service{
 		Id:   myname + suffix,
 		Kind: "grpc",
 		Name: myname,
-		Host: conf.GrpcHost,
+		Host: realGrpcHost,
 		Port: conf.GrpcPort,
 	}
 	chks := &center.Check{
 		Type:     "grpc",
-		Target:   fmt.Sprintf("%s:%v/%v", conf.GrpcHost, conf.GrpcPort, service),
+		Target:   fmt.Sprintf("%s:%v/%v", realGrpcHost, conf.GrpcPort, service),
 		Timeout:  conf.GrpcCheckTimeout,
 		Interval: conf.GrpcCheckInterval,
 	}
