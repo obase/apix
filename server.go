@@ -33,7 +33,7 @@ type Server struct {
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
 	services     []*Service
-	routeFunc    func(router gin.IRouter)
+	routeFunc    func(router IRouter)
 	registFunc   func(server *grpc.Server)
 }
 
@@ -115,7 +115,7 @@ func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
 }
 
 /* 补充gin的IRouter路由信息*/
-func (server *Server) Route(rf func(router gin.IRouter)) {
+func (server *Server) Route(rf func(router IRouter)) {
 	server.routeFunc = rf
 }
 
