@@ -64,7 +64,7 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 	if realGrpcHost == "" {
 		realGrpcHost = PrivateAddress
 	}
-	suffix := "@" + realGrpcHost + ":" + strconv.Itoa(conf.HttpPort)
+	suffix := "@" + realGrpcHost + ":" + strconv.Itoa(conf.GrpcPort)
 	myname := center.GrpcName(conf.Name)
 	regs := &center.Service{
 		Id:   myname + suffix,
