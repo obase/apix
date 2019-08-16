@@ -27,7 +27,7 @@ func ParsingRequestError(err error, tag string) error {
 }
 
 /*处理引擎*/
-type Server struct {
+type XServer struct {
 	*Config                      // conf.yml中配置数据
 	init         map[string]bool // file初始化标志
 	serverOption []grpc.ServerOption
@@ -38,7 +38,7 @@ type Server struct {
 }
 
 /*用于apigen工具的方法*/
-func (s *Server) Init(f func(server *Server)) {
+func (s *XServer) Init(f func(server *XServer)) {
 	k := fmt.Sprintf("%p", f)
 	if _, ok := s.init[k]; ok {
 		return
@@ -47,15 +47,15 @@ func (s *Server) Init(f func(server *Server)) {
 	s.init[k] = true
 }
 
-func (s *Server) ServerOption(so grpc.ServerOption) {
+func (s *XServer) ServerOption(so grpc.ServerOption) {
 	s.serverOption = append(s.serverOption, so)
 }
 
-func (s *Server) MiddleFilter(mf gin.HandlerFunc) {
+func (s *XServer) MiddleFilter(mf gin.HandlerFunc) {
 	s.middleFilter = append(s.middleFilter, mf)
 }
 
-func (s *Server) Service(desc *grpc.ServiceDesc, impl interface{}) *Service {
+func (s *XServer) Service(desc *grpc.ServiceDesc, impl interface{}) *Service {
 	gs := &Service{
 		serviceDesc: desc,
 		serviceImpl: impl,
@@ -115,16 +115,16 @@ func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
 }
 
 /* 补充gin的IRouter路由信息*/
-func (server *Server) Route(rf func(router gin.IRouter)) {
+func (server *XServer) Route(rf func(router gin.IRouter)) {
 	server.routeFunc = rf
 }
 
-func (server *Server) Regist(rf func(server *grpc.Server)) {
+func (server *XServer) Regist(rf func(server *grpc.Server)) {
 	server.registFunc = rf
 }
 
 /*安装*/
-func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
+func (server *XServer) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 
 	// 安装grpc相关配置
 	if grpcServer != nil {
@@ -168,7 +168,7 @@ func (server *Server) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 
 }
 
-func (server *Server) Serve() error {
+func (server *XServer) Serve() error {
 
 	if server.Config.GrpcPort == 0 && server.Config.HttpPort == 0 {
 		return nil
@@ -273,12 +273,12 @@ func (server *Server) Serve() error {
 使用pbx区别业务项目的api库
 */
 
-func NewServer() *Server {
+func NewServer() *XServer {
 	return NewServerWith(LoadConfig())
 }
 
-func NewServerWith(c *Config) *Server {
-	return &Server{
+func NewServerWith(c *Config) *XServer {
+	return &XServer{
 		Config: mergeConfig(c),
 		init:   make(map[string]bool),
 	}

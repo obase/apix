@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
-	"github.com/obase/api/x"
 	"github.com/obase/log"
 	"net"
 	"net/http"
@@ -168,15 +167,13 @@ func Errorf(code int, format string, args ...interface{}) error {
 	}
 }
 
-var None = new(x.Void) // 定义空值
-
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
 // connections. It's used by ListenAndServe and ListenAndServeTLS so
 // dead TCP connections (e.g. closing laptop mid-download) eventually
 // go away.
 type tcpKeepAliveListener struct {
 	*net.TCPListener
-	keepAlivePeriod time.Duration
+	KeepAlivePeriod time.Duration
 }
 
 func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
@@ -184,13 +181,11 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ln.keepAlivePeriod > 0 {
-		tc.SetKeepAlive(true)
-		tc.SetKeepAlivePeriod(ln.keepAlivePeriod)
-	} else {
-		// 用回http.Server默认设置
-		tc.SetKeepAlive(true)
+	tc.SetKeepAlive(true)
+	if ln.KeepAlivePeriod == 0 {
 		tc.SetKeepAlivePeriod(3 * time.Minute)
+	} else {
+		tc.SetKeepAlivePeriod(ln.KeepAlivePeriod)
 	}
 	return tc, nil
 }

@@ -41,12 +41,6 @@ func mergeConfig(conf *Config) *Config {
 	}
 
 	// 补充默认逻辑
-	if conf.HttpHost == "" {
-		conf.HttpHost = PrivateAddress
-	}
-	if conf.GrpcHost == "" {
-		conf.GrpcHost = PrivateAddress
-	}
 	if conf.HttpCheckTimeout == "" {
 		conf.HttpCheckTimeout = "5s"
 	}
