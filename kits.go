@@ -191,6 +191,12 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 }
 
 func GetFile(l net.Listener) *os.File {
-	file, _ := l.(*net.TCPListener).File()
+	var file *os.File
+	switch l := l.(type) {
+	case *tcpKeepAliveListener:
+		file, _ = l.TCPListener.File()
+	case *net.TCPListener:
+		file, _ = l.File()
+	}
 	return file
 }
