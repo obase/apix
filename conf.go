@@ -4,7 +4,6 @@ import (
 	"github.com/obase/conf"
 	"github.com/obase/ginx"
 	"github.com/obase/ginx/httpcache"
-	"net/http"
 	"time"
 )
 
@@ -19,14 +18,15 @@ type Config struct {
 	WbskReadBufferSize  int               `json:"wbskReadBufferSize" bson:"wbskReadBufferSize" yaml:"wbskReadBufferSize"`    // 默认4092
 	WbskWriteBufferSize int               `json:"wbskWriteBufferSize" bson:"wbskWriteBufferSize" yaml:"wbskWriteBufferSize"` // 默认4092
 	WbskNotCheckOrigin  bool              `json:"wbskNotCheckOrigin" bson:"wbskNotCheckOrigin" yaml:"wbskNotCheckOrigin"`    // 默认false
-	GrpcHost            string            `json:"grpcHost" bson:"grpcHost" yaml:"grpcHost"`                                  // 默认本机扫描到的第一个私用IP
-	GrpcPort            int               `json:"grpcPort" bson:"grpcPort" yaml:"grpcPort"`                                  // 若为空表示不启用grpc server
-	GrpcKeepAlive       time.Duration     `json:"grpcKeepAlive" bson:"grpcKeepAlive" yaml:"grpcKeepAlive"`                   // 默认不启用
-	GrpcCheckTimeout    string            `json:"grpcCheckTimeout" bson:"grpcCheckTimeout" yaml:"grpcCheckTimeout"`
-	GrpcCheckInterval   string            `json:"grpcCheckInterval" bson:"grpcCheckInterval" yaml:"grpcCheckInterval"`
 	HttpCache           *httpcache.Config `json:"httpCache" bson:"httpCache" yaml:"httpCache"`
 	HttpPlugin          map[string]string `json:"httpPlugin" bson:"httpPlugin" yaml:"httpPlugin"`
 	HttpEntry           []ginx.HttpEntry  `json:"httpEntry" bson:"httpEntry" yaml:"httpEntry"`
+
+	GrpcHost          string        `json:"grpcHost" bson:"grpcHost" yaml:"grpcHost"`                // 默认本机扫描到的第一个私用IP
+	GrpcPort          int           `json:"grpcPort" bson:"grpcPort" yaml:"grpcPort"`                // 若为空表示不启用grpc server
+	GrpcKeepAlive     time.Duration `json:"grpcKeepAlive" bson:"grpcKeepAlive" yaml:"grpcKeepAlive"` // 默认不启用
+	GrpcCheckTimeout  string        `json:"grpcCheckTimeout" bson:"grpcCheckTimeout" yaml:"grpcCheckTimeout"`
+	GrpcCheckInterval string        `json:"grpcCheckInterval" bson:"grpcCheckInterval" yaml:"grpcCheckInterval"`
 }
 
 const CKEY = "service"
@@ -38,8 +38,6 @@ func LoadConfig() *Config {
 	}
 	return config
 }
-
-var DefaultMethods = []string{http.MethodGet, http.MethodPost}
 
 // 合并默认值
 func mergeConfig(conf *Config) *Config {
@@ -60,11 +58,6 @@ func mergeConfig(conf *Config) *Config {
 	}
 	if conf.GrpcCheckInterval == "" {
 		conf.GrpcCheckInterval = "6s"
-	}
-	for _, entry := range conf.HttpEntry {
-		if len(entry.Method) == 0 {
-			entry.Method = DefaultMethods
-		}
 	}
 	return conf
 }
