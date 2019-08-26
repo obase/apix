@@ -2,7 +2,9 @@ package apix
 
 import (
 	"github.com/obase/conf"
+	"github.com/obase/ginx"
 	"github.com/obase/ginx/httpcache"
+	"net/http"
 	"time"
 )
 
@@ -23,8 +25,8 @@ type Config struct {
 	GrpcCheckTimeout    string            `json:"grpcCheckTimeout" bson:"grpcCheckTimeout" yaml:"grpcCheckTimeout"`
 	GrpcCheckInterval   string            `json:"grpcCheckInterval" bson:"grpcCheckInterval" yaml:"grpcCheckInterval"`
 	HttpCache           *httpcache.Config `json:"httpCache" bson:"httpCache" yaml:"httpCache"`
-	HttpPlugin          *httpcache.Config `json:"httpPlugin" bson:"httpPlugin" yaml:"httpPlugin"`
-	HttpEntry
+	HttpPlugin          map[string]string `json:"httpPlugin" bson:"httpPlugin" yaml:"httpPlugin"`
+	HttpEntry           []ginx.HttpEntry  `json:"httpEntry" bson:"httpEntry" yaml:"httpEntry"`
 }
 
 const CKEY = "service"
@@ -36,6 +38,8 @@ func LoadConfig() *Config {
 	}
 	return config
 }
+
+var DefaultMethods = []string{http.MethodGet, http.MethodPost}
 
 // 合并默认值
 func mergeConfig(conf *Config) *Config {
@@ -56,6 +60,11 @@ func mergeConfig(conf *Config) *Config {
 	}
 	if conf.GrpcCheckInterval == "" {
 		conf.GrpcCheckInterval = "6s"
+	}
+	for _, entry := range conf.HttpEntry {
+		if len(entry.Method) == 0 {
+			entry.Method = DefaultMethods
+		}
 	}
 	return conf
 }

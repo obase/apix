@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
+	"github.com/obase/ginx"
 	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -26,9 +27,15 @@ func ParsingRequestError(err error, tag string) error {
 	}
 }
 
-/*处理引擎*/
+/*
+扩展逻辑服务器:
+1. 支持proto静态注册
+2. 支持api + conf.yml动态注册
+3. 支持httpPlugin, httpCache机制
+*/
 type XServer struct {
 	*Config                      // conf.yml中配置数据
+	ginx.Server                  // 扩展gin.Server
 	init         map[string]bool // file初始化标志
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
