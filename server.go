@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
-	"github.com/obase/ginx"
+	"github.com/obase/httpx/cache"
+	"github.com/obase/httpx/ginx"
 	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -34,13 +35,12 @@ func ParsingRequestError(err error, tag string) error {
 3. 支持httpPlugin, httpCache机制
 */
 type XServer struct {
-	*Config                      // conf.yml中配置数据
-	ginx.Server                  // 扩展gin.Server
+	*ginx.Server                 // 扩展gin.Server
 	init         map[string]bool // file初始化标志
 	serverOption []grpc.ServerOption
 	middleFilter []gin.HandlerFunc
 	services     []*Service
-	routeFunc    func(router gin.IRouter)
+	routesFunc   func(server *ginx.Server)
 	registFunc   func(server *grpc.Server)
 }
 
@@ -122,31 +122,99 @@ func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
 }
 
 /* 补充gin的IRouter路由信息*/
-func (server *XServer) Route(rf func(router gin.IRouter)) {
-	server.routeFunc = rf
+func (server *XServer) Routes(rf func(server *ginx.Server)) {
+	server.routesFunc = rf
 }
 
 func (server *XServer) Regist(rf func(server *grpc.Server)) {
 	server.registFunc = rf
 }
 
-/*安装*/
-func (server *XServer) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
+func (server *XServer) Serve() error {
+	return server.ServeWith(LoadConfig())
+}
 
-	// 安装grpc相关配置
-	if grpcServer != nil {
+func (server *XServer) ServeWith(config *Config) error {
+
+	config = mergeConfig(config)
+
+	// 没有配置任何启动,直接退出. 注意: 没有默认80之类的设置
+	if config.GrpcPort == 0 && config.HttpPort == 0 {
+		return nil
+	}
+
+	var (
+		operations   []func()
+		grpcServer   *grpc.Server
+		grpcListener net.Listener
+		httpServer   *http.Server
+		httpListener net.Listener
+		httpCache    cache.Cache
+		err          error
+	)
+
+	defer func() {
+		log.Flush()
+		// 反注册consul服务,另外还设定了超时反注册,双重保障
+		if config.Name != "" {
+			deregisterService(config)
+		}
+		// 退出需要明确关闭
+		if grpcListener != nil {
+			grpcListener.Close()
+		}
+		if httpListener != nil {
+			httpListener.Close()
+		}
+		if httpCache != nil {
+			httpCache.Close()
+		}
+	}()
+
+	// 创建grpc服务器
+	if config.GrpcPort > 0 {
+		// 设置keepalive超时
+		if config.GrpcKeepAlive != 0 {
+			server.serverOption = append(server.serverOption, grpc.KeepaliveParams(keepalive.ServerParameters{
+				Time: config.GrpcKeepAlive,
+			}))
+		}
+		grpcServer = grpc.NewServer(server.serverOption...)
+		// 安装grpc相关配置
 		for _, smeta := range server.services {
 			grpcServer.RegisterService(smeta.serviceDesc, smeta.serviceImpl)
 		}
 		if server.registFunc != nil {
-			// 附加额外的Grpc设置,预防额外逻辑
-			server.registFunc(grpcServer)
+			server.registFunc(grpcServer) // 附加额外的Grpc设置,预防额外逻辑
 		}
+		// 注册grpc服务
+		if config.Name != "" {
+			registerServiceGrpc(grpcServer, config)
+		}
+		// 创建监听端口
+		grpcListener, err = graceListenGrpc(config.GrpcHost, config.GrpcPort)
+		if err != nil {
+			log.Error(nil, "grpc server listen error: %v", err)
+			log.Flush()
+			return err
+		}
+		// 启动grpc服务
+		operations = append(operations, func() {
+			if err = grpcServer.Serve(grpcListener); err != nil {
+				log.Error(nil, "grpc server serve error: %v", err)
+				log.Flush()
+				os.Exit(1)
+			}
+		})
 	}
 
-	// 安装http相关配置
-	if httpRouter != nil {
+	// 创建http服务器
+	if config.HttpPort > 0 {
+		gin.SetMode(gin.ReleaseMode)
+		server.Server.Use(server.middleFilter...)
+		// 安装http相关配置
 		var upgrader *websocket.Upgrader
+		var httpRouter ginx.IRouter = server.Server // 设置为顶层
 		for _, smeta := range server.services {
 			if smeta.groupPath != "" {
 				httpRouter = httpRouter.Group(smeta.groupPath, smeta.groupFilter...)
@@ -171,83 +239,12 @@ func (server *XServer) Setup(grpcServer *grpc.Server, httpRouter gin.IRouter) {
 			// 附加额外的API设置,预防额外逻辑
 			server.routeFunc(httpRouter)
 		}
-	}
-
-}
-
-func (server *XServer) Serve() error {
-
-	if server.Config.GrpcPort == 0 && server.Config.HttpPort == 0 {
-		return nil
-	}
-
-	var (
-		operations   []func()
-		grpcServer   *grpc.Server
-		grpcListener net.Listener
-		httpServer   *http.Server
-		httpListener net.Listener
-		httpRouter   *gin.Engine
-		err          error
-	)
-
-	defer func() {
-		log.Flush()
-		// 反注册consul服务,另外还设定了超时反注册,双重保障
-		if server.Config.Name != "" {
-			deregisterService(server.Config)
-		}
-		// 退出需要明确关闭
-		if grpcListener != nil {
-			grpcListener.Close()
-		}
-		if httpListener != nil {
-			httpListener.Close()
-		}
-	}()
-
-	// 创建grpc服务器
-	if server.Config.GrpcPort > 0 {
-		// 设置keepalive超时
-		if server.Config.GrpcKeepAlive != 0 {
-			server.serverOption = append(server.serverOption, grpc.KeepaliveParams(keepalive.ServerParameters{
-				Time: server.Config.GrpcKeepAlive,
-			}))
-		}
-		grpcServer = grpc.NewServer(server.serverOption...)
-		// 注册grpc服务
-		if server.Config.Name != "" {
-			registerServiceGrpc(grpcServer, server.Config)
-		}
-		// 创建监听端口
-		grpcListener, err = graceListenGrpc(server.Config.GrpcHost, server.Config.GrpcPort)
-		if err != nil {
-			log.Error(nil, "grpc server listen error: %v", err)
-			log.Flush()
-			return err
-		}
-		// 启动grpc服务
-		operations = append(operations, func() {
-			if err = grpcServer.Serve(grpcListener); err != nil {
-				log.Error(nil, "grpc server serve error: %v", err)
-				log.Flush()
-				os.Exit(1)
-			}
-		})
-	}
-
-	// 创建http服务器
-	if server.Config.HttpPort > 0 {
-		gin.SetMode(gin.ReleaseMode)
-		httpRouter = gin.New()
-		httpRouter.Use(server.middleFilter...)
 		// 注册http检查
-		if server.Config.Name != "" {
-			registerServiceHttp(httpRouter, server.Config)
+		if config.Name != "" {
+			registerServiceHttp(server.Server, config)
 		}
-		httpServer = &http.Server{Handler: httpRouter}
 		// 创建监听端口
-		httpListener, err = graceListenHttp(server.Config.HttpHost, server.Config.HttpPort, server.Config.HttpKeepAlive)
+		httpListener, err = graceListenHttp(config.HttpHost, config.HttpPort, config.HttpKeepAlive)
 		if err != nil {
 			log.Error(context.Background(), "http server listen error: %v", err)
 			log.Flush()
@@ -262,9 +259,6 @@ func (server *XServer) Serve() error {
 		})
 	}
 
-	// 安装protobuf元配置
-	server.Setup(grpcServer, httpRouter)
-
 	// 后置执行操作
 	for _, opt := range operations {
 		go opt()
@@ -274,19 +268,4 @@ func (server *XServer) Serve() error {
 	graceShutdownOrRestart(grpcServer, grpcListener, httpServer, httpListener)
 
 	return nil
-}
-
-/*
-使用pbx区别业务项目的api库
-*/
-
-func NewServer() *XServer {
-	return NewServerWith(LoadConfig())
-}
-
-func NewServerWith(c *Config) *XServer {
-	return &XServer{
-		Config: mergeConfig(c),
-		init:   make(map[string]bool),
-	}
 }
