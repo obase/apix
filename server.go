@@ -44,6 +44,22 @@ type XServer struct {
 	registFunc   func(server *grpc.Server)
 }
 
+func NewServer() *XServer {
+	return &XServer{
+		Server: ginx.New(),
+	}
+}
+
+func (s *XServer) dispose() {
+	s.Server = nil
+	s.init = nil
+	s.serverOption = nil
+	s.middleFilter = nil
+	s.services = nil
+	s.routesFunc = nil
+	s.registFunc = nil
+}
+
 /*用于apigen工具的方法*/
 func (s *XServer) Init(f func(server *XServer)) {
 	k := fmt.Sprintf("%p", f)
@@ -69,56 +85,6 @@ func (s *XServer) Service(desc *grpc.ServiceDesc, impl interface{}) *Service {
 	}
 	s.services = append(s.services, gs)
 	return gs
-}
-
-type Service struct {
-	serviceImpl interface{}
-	serviceDesc *grpc.ServiceDesc
-	groupPath   string
-	groupFilter []gin.HandlerFunc
-	methods     []*Method
-}
-
-func (gs *Service) GroupPath(gpath string) {
-	gs.groupPath = gpath
-}
-
-func (gs *Service) GroupFilter(gf gin.HandlerFunc) {
-	gs.groupFilter = append(gs.groupFilter, gf)
-}
-
-func (gs *Service) Method(tag string, adapt MethodFunc) *Method {
-	gm := &Method{
-		tag:     tag,
-		adapter: adapt,
-	}
-	gs.methods = append(gs.methods, gm)
-	return gm
-}
-
-type Method struct {
-	tag          string
-	adapter      MethodFunc        // 对应方法的AdapterFunc
-	handlePath   string            // 对应方法的Handler path
-	handleFilter []gin.HandlerFunc // 对应方法的Handler Filter
-	socketPath   string            // 对应方法的Socket path
-	socketFilter []gin.HandlerFunc // 对应方法的Handler Filter
-}
-
-func (gm *Method) HandlePath(path string) {
-	gm.handlePath = path
-}
-
-func (gm *Method) HandleFilter(hf gin.HandlerFunc) {
-	gm.handleFilter = append(gm.handleFilter, hf)
-}
-
-func (gm *Method) SocketPath(path string) {
-	gm.socketPath = path
-}
-
-func (gm *Method) SocketFilter(hf gin.HandlerFunc) {
-	gm.socketFilter = append(gm.socketFilter, hf)
 }
 
 /* 补充gin的IRouter路由信息*/
@@ -150,6 +116,8 @@ func (server *XServer) ServeWith(config *Config) error {
 		httpListener net.Listener
 		httpCache    cache.Cache
 		err          error
+		grpcfunc     func() // 用于延迟启动
+		httpfunc     func() // 用于延迟启动
 	)
 
 	defer func() {
@@ -198,13 +166,13 @@ func (server *XServer) ServeWith(config *Config) error {
 			return err
 		}
 		// 启动grpc服务
-		go func() {
+		grpcfunc = func() {
 			if err = grpcServer.Serve(grpcListener); err != nil {
 				log.Error(nil, "grpc server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
-		}()
+		}
 	}
 
 	// 创建http服务器
@@ -258,15 +226,20 @@ func (server *XServer) ServeWith(config *Config) error {
 			log.Flush()
 			return err
 		}
-		go func() {
+		httpfunc = func() {
 			if err := httpServer.Serve(httpListener); err != nil {
 				log.Error(nil, "http server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
-		}()
+		}
 	}
+	// 释放ginx.Server无用缓存
+	server.dispose()
 
+	// 延迟启动
+	go grpcfunc()
+	go httpfunc()
 	// 优雅关闭http与grpc服务
 	graceShutdownOrRestart(grpcServer, grpcListener, httpServer, httpListener)
 
