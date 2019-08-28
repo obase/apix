@@ -225,8 +225,12 @@ func (server *XServer) ServeWith(config *Config) error {
 	server.dispose()
 
 	// 延迟启动
-	go grpcfunc()
-	go httpfunc()
+	if grpcfunc != nil {
+		go grpcfunc()
+	}
+	if httpfunc != nil {
+		go httpfunc()
+	}
 	// 优雅关闭http与grpc服务
 	graceShutdownOrRestart(grpcServer, grpcListener, httpServer, httpListener)
 
