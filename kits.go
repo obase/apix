@@ -18,6 +18,23 @@ const (
 	GRACE_ALL  = "3" // grpc是3, http是4
 )
 
+/*封装错误类型*/
+func ParsingRequestError(err error, tag string) error {
+	return &api.Response{
+		Code: api.PARSING_REQUEST_ERROR,
+		Msg:  err.Error(),
+		Tag:  tag,
+	}
+}
+
+/*创建错误对象*/
+func Errorf(code int, format string, args ...interface{}) error {
+	return &api.Response{
+		Code: code,
+		Msg:  fmt.Sprintf(format, args...),
+	}
+}
+
 // TODO: 附加访问时长
 func recoverHandleFunc(c *gin.Context) {
 	if perr := recover(); perr != nil {
@@ -137,11 +154,4 @@ func createSocketUpgrader(conf *Config) *websocket.Upgrader {
 		}
 	}
 	return upgrader
-}
-
-func Errorf(code int, format string, args ...interface{}) error {
-	return &api.Response{
-		Code: code,
-		Msg:  fmt.Sprintf(format, args...),
-	}
 }

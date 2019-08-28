@@ -1,6 +1,12 @@
 package apix
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"github.com/gin-gonic/gin"
+)
+
+/*方法处理原型*/
+type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
 
 type Method struct {
 	tag          string

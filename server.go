@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/obase/api"
 	"github.com/obase/httpx/cache"
 	"github.com/obase/httpx/ginx"
 	"github.com/obase/log"
@@ -15,18 +14,6 @@ import (
 	"net/http"
 	"os"
 )
-
-/*方法处理原型*/
-type MethodFunc func(ctx context.Context, rdata []byte) (interface{}, error)
-
-/*封装错误类型*/
-func ParsingRequestError(err error, tag string) error {
-	return &api.Response{
-		Code: api.PARSING_REQUEST_ERROR,
-		Msg:  err.Error(),
-		Tag:  tag,
-	}
-}
 
 /*
 扩展逻辑服务器:
