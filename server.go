@@ -144,7 +144,6 @@ func (server *XServer) ServeWith(config *Config) error {
 	}
 
 	var (
-		operations   []func()
 		grpcServer   *grpc.Server
 		grpcListener net.Listener
 		httpServer   *http.Server
@@ -199,13 +198,13 @@ func (server *XServer) ServeWith(config *Config) error {
 			return err
 		}
 		// 启动grpc服务
-		operations = append(operations, func() {
+		go func() {
 			if err = grpcServer.Serve(grpcListener); err != nil {
 				log.Error(nil, "grpc server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
-		})
+		}()
 	}
 
 	// 创建http服务器
@@ -221,26 +220,36 @@ func (server *XServer) ServeWith(config *Config) error {
 			for _, mmeta := range smeta.methods {
 				// POST handle
 				if mmeta.handlePath != "" {
-					handlers := append(mmeta.handleFilter, CreateHandleFunc(mmeta.adapter, mmeta.tag))
+					handlers := append(mmeta.handleFilter, createHandleFunc(mmeta.adapter, mmeta.tag))
 					httpRouter.POST(mmeta.handlePath, handlers...)
 				}
 				// GET socket
 				if mmeta.socketPath != "" {
 					if upgrader == nil {
-						upgrader = CreateSocketUpgrader(server.Config)
+						upgrader = createSocketUpgrader(config)
 					}
-					handlers := append(mmeta.socketFilter, CreateSocketFunc(upgrader, mmeta.adapter, mmeta.tag))
+					handlers := append(mmeta.socketFilter, createSocketFunc(upgrader, mmeta.adapter, mmeta.tag))
 					httpRouter.GET(mmeta.socketPath, handlers...)
 				}
 			}
 		}
-		if server.routeFunc != nil {
+		if server.routesFunc != nil {
 			// 附加额外的API设置,预防额外逻辑
-			server.routeFunc(httpRouter)
+			server.routesFunc(server.Server)
 		}
 		// 注册http检查
 		if config.Name != "" {
 			registerServiceHttp(server.Server, config)
+		}
+		httpCache = cache.New(config.HttpCache)
+		mux, err := server.Server.Compile(config.HttpEntry, config.HttpPlugin, httpCache)
+		if err != nil {
+			log.Error(context.Background(), "http server compile error: %v", err)
+			log.Flush()
+			return err
+		}
+		httpServer = &http.Server{
+			Handler: mux,
 		}
 		// 创建监听端口
 		httpListener, err = graceListenHttp(config.HttpHost, config.HttpPort, config.HttpKeepAlive)
@@ -249,18 +258,13 @@ func (server *XServer) ServeWith(config *Config) error {
 			log.Flush()
 			return err
 		}
-		operations = append(operations, func() {
+		go func() {
 			if err := httpServer.Serve(httpListener); err != nil {
 				log.Error(nil, "http server serve error: %v", err)
 				log.Flush()
 				os.Exit(1)
 			}
-		})
-	}
-
-	// 后置执行操作
-	for _, opt := range operations {
-		go opt()
+		}()
 	}
 
 	// 优雅关闭http与grpc服务

@@ -19,16 +19,16 @@ const (
 )
 
 // TODO: 附加访问时长
-func RecoverHandleFunc(c *gin.Context) {
+func recoverHandleFunc(c *gin.Context) {
 	if perr := recover(); perr != nil {
 		log.ErrorStack(c, fmt.Errorf("panic error: uri=%v, err=%v", c.Request.RequestURI, perr), false) // 打印堆栈错误
 	}
 }
 
-func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
+func createHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		defer RecoverHandleFunc(c)
+		defer recoverHandleFunc(c)
 
 		var (
 			rdata []byte
@@ -71,10 +71,10 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 	}
 }
 
-func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) gin.HandlerFunc {
+func createSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		defer RecoverHandleFunc(c)
+		defer recoverHandleFunc(c)
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
@@ -123,7 +123,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 }
 
 // 创建upgrader
-func CreateSocketUpgrader(conf *Config) *websocket.Upgrader {
+func createSocketUpgrader(conf *Config) *websocket.Upgrader {
 	upgrader := new(websocket.Upgrader)
 	if conf.WbskReadBufferSize != 0 {
 		upgrader.ReadBufferSize = conf.WbskReadBufferSize
