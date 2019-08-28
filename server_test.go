@@ -15,8 +15,12 @@ func TestNewServer(t *testing.T) {
 	}, func(context *gin.Context) {
 		fmt.Println("this is use 2...")
 	})
+
 	server.Routes(func(server *ginx.Server) {
-		server.GET("/now", func(context *gin.Context) {
+		g := server.Group("/g", func(context *gin.Context) {
+			fmt.Println("this is in group...")
+		})
+		g.GET("/now", func(context *gin.Context) {
 			fmt.Fprintf(context.Writer, "current time: %v\n", time.Now().Format("2006-01-02 15:04:05.777"))
 		})
 	})
