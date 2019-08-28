@@ -210,7 +210,6 @@ func (server *XServer) ServeWith(config *Config) error {
 
 	// 创建http服务器
 	if config.HttpPort > 0 {
-		gin.SetMode(gin.ReleaseMode)
 		server.Server.Use(server.middleFilter...)
 		// 安装http相关配置
 		var upgrader *websocket.Upgrader

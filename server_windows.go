@@ -2,6 +2,7 @@ package apix
 
 import (
 	"context"
+	"github.com/obase/httpx"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
@@ -22,7 +23,7 @@ func graceListenHttp(host string, port int, keepalive time.Duration) (net.Listen
 	if err != nil {
 		return nil, err
 	}
-	return &tcpKeepAliveListener{TCPListener: tln.(*net.TCPListener), KeepAlivePeriod: keepalive}, nil
+	return &httpx.KeepAliveTCPListener{TCPListener: tln.(*net.TCPListener), KeepAlivePeriod: keepalive}, nil
 }
 
 func graceShutdownOrRestart(grpcServer *grpc.Server, grpcListener net.Listener, httpServer *http.Server, httpListener net.Listener) {
