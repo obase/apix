@@ -8,8 +8,17 @@ import (
 	"time"
 )
 
+var demo = func(args []string) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		fmt.Println("plugin arguments: ", args)
+	}
+}
+
 func TestNewServer(t *testing.T) {
 	server := NewServer()
+
+	server.Plugin("demo", demo)
+
 	server.Use(func(context *gin.Context) {
 		fmt.Println("this is use 1...")
 	}, func(context *gin.Context) {
