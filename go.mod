@@ -9,7 +9,7 @@ require (
 	github.com/obase/api v1.4.2
 	github.com/obase/center v1.4.2
 	github.com/obase/conf v1.4.2
-	github.com/obase/httpx v0.21.2
+	github.com/obase/httpx v0.22.0
 	github.com/obase/log v1.4.2
 	google.golang.org/grpc v1.23.0
 )
