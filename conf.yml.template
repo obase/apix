@@ -1,3 +1,41 @@
+# http扩展配置
+httpx:
+  # 连接超时, 默认30秒
+  connectTimeout: "30s"
+  # 连接keepalive, 默认30秒
+  keepAlive: "30s"
+  # 最大空闲,默认10240
+  maxIdleConns: 10240
+  # 每个主机最大连接数, 该值直接影响并发QPS
+  maxIdleConnsPerHost: 2048
+  # 每机最大连接数
+  maxConnsPerHost: 0
+  # 空闲超时, 默认90秒
+  idleConnTimeout: "90s"
+  # 是否禁用压缩
+  disableCompression: false
+  # 响应头超时, 默认5秒
+  responseHeaderTimeout: "5s"
+  # 期望再超时, 默认1秒
+  expectContinueTimeout: "1s"
+  # 最大响应大字节数
+  maxResponseHeaderBytes: 0
+  # 请求超时.默认60秒
+  requestTimeout: "60s"
+  # 反向代理刷新间隔, 0表示默认, 负表示立即刷新
+  proxyFlushInterval: 0
+  # 反向代理Buff池策略, none表示没有,sync表示用sync.Pool
+  proxyBufferPool: "none"
+  # 反向代理错误解句柄, none表示没有,body表示将错误写在响应内容体
+  proxyErrorHandler: "none"
+
+# 服务注册中心
+center:
+  # 代理地址
+  address: "10.11.165.44:18500"
+  # 缓存超时
+  expired: 60
+
 # 服务元数据
 service:
   # 服务名称, 自动注册<name>, <name>.http, <name>.grpc三种服务
@@ -27,8 +65,47 @@ service:
   grpcCheckTimeout: "5s"
   grpcCheckInterval: "6s"
 
-  # consult 配置地址, 默认不启动.也支持
-  # center:
-  #   address: "127.0.0.1:8500"
-  #   timeout: "30s"
-  center: "127.0.0.1"
+  # 缓存设置
+  httpCache:
+    # 缓存类型, memory | redis
+    type: "redis"
+    # 引用的key(必需),如果存在则不再创建
+    key:
+    # 地址(必需). 多值用逗号分隔
+    address: "127.0.0.1:6379"
+    # 是否集群(必需)
+    cluster: false
+    # 密码(可选)
+    password:
+    # keepalive间隔(可选). 默认空不设置
+    keepalive: "1m"
+    # 连接超时(可选). 默认空不设置
+    connectTimeout: "1m"
+    # 读超时(可选). 默认空不设置
+    readTimeout: "1m"
+    # 写超时(可选): 默认空不设置
+    writeTimeout: "1m"
+    # 连接池初始数量(可选). 默认为0
+    initConns: 4
+    # 连接池最大数量(可选). 默认没有限制
+    maxConns: 256
+    # 连接池最大空闲数量. 默认为initConns
+    maxIdles:
+    # 连接池测试空闲超时. 处理空闲的连接若超时会执行PING测试是否可用.
+    testIdleTimeout: "20m"
+    # 连接池达到最大链接数量立即报错还是阻塞等待
+    errExceMaxConns: false
+    # 统一后缀. 默认为空, 一般用于多个业务共用Redis集群的情况
+    keyfix:
+    # 支持Database下标, 默认0
+    select: 0
+    # 代理IP. 默认为空, 一般用于网关集群测试,自动将cluster slots的内网IP替换为外网IP.
+    proxyips: {"127.0.0.1","192.168.2.21"}
+  # 自定义参数
+  httpPlugin:
+    demo: "xxxe"
+    VerifyToken: "xxefef"
+  # 服务代理入口
+  httpEntry:
+    - {source: "/gw/mul", service: "target", target: "/mul", plugin: ["demo()","VerifyToken($demo)"], cache: 300, https: false, methods: ["GET","POST"], remark: "测试用例"}
+
