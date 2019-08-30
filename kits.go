@@ -7,10 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/obase/api"
 	"github.com/obase/log"
-	"net"
 	"net/http"
-	"os"
-	"time"
 )
 
 const (
@@ -21,17 +18,34 @@ const (
 	GRACE_ALL  = "3" // grpc是3, http是4
 )
 
+/*封装错误类型*/
+func ParsingRequestError(err error, tag string) error {
+	return &api.Response{
+		Code: api.PARSING_REQUEST_ERROR,
+		Msg:  err.Error(),
+		Tag:  tag,
+	}
+}
+
+/*创建错误对象*/
+func Errorf(code int, format string, args ...interface{}) error {
+	return &api.Response{
+		Code: code,
+		Msg:  fmt.Sprintf(format, args...),
+	}
+}
+
 // TODO: 附加访问时长
-func RecoverHandleFunc(c *gin.Context) {
+func recoverHandleFunc(c *gin.Context) {
 	if perr := recover(); perr != nil {
 		log.ErrorStack(c, fmt.Errorf("panic error: uri=%v, err=%v", c.Request.RequestURI, perr), false) // 打印堆栈错误
 	}
 }
 
-func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
+func createHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		defer RecoverHandleFunc(c)
+		defer recoverHandleFunc(c)
 
 		var (
 			rdata []byte
@@ -74,10 +88,10 @@ func CreateHandleFunc(mf MethodFunc, tag string) gin.HandlerFunc {
 	}
 }
 
-func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) gin.HandlerFunc {
+func createSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		defer RecoverHandleFunc(c)
+		defer recoverHandleFunc(c)
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
@@ -126,7 +140,7 @@ func CreateSocketFunc(upgrader *websocket.Upgrader, af MethodFunc, tag string) g
 }
 
 // 创建upgrader
-func CreateSocketUpgrader(conf *Config) *websocket.Upgrader {
+func createSocketUpgrader(conf *Config) *websocket.Upgrader {
 	upgrader := new(websocket.Upgrader)
 	if conf.WbskReadBufferSize != 0 {
 		upgrader.ReadBufferSize = conf.WbskReadBufferSize
@@ -140,63 +154,4 @@ func CreateSocketUpgrader(conf *Config) *websocket.Upgrader {
 		}
 	}
 	return upgrader
-}
-
-var PrivateAddress = func(def string) (ret string) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return def
-	}
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ip4 := ipnet.IP.To4(); ip4 != nil {
-				// 必须私有网段
-				if (ip4[0] == 10) || (ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) || (ip4[0] == 192 && ip4[1] == 168) {
-					return ip4.String()
-				}
-			}
-		}
-	}
-	return def
-}("127.0.0.1")
-
-func Errorf(code int, format string, args ...interface{}) error {
-	return &api.Response{
-		Code: code,
-		Msg:  fmt.Sprintf(format, args...),
-	}
-}
-
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by ListenAndServe and ListenAndServeTLS so
-// dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away.
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-	KeepAlivePeriod time.Duration
-}
-
-func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return nil, err
-	}
-	tc.SetKeepAlive(true)
-	if ln.KeepAlivePeriod == 0 {
-		tc.SetKeepAlivePeriod(3 * time.Minute)
-	} else {
-		tc.SetKeepAlivePeriod(ln.KeepAlivePeriod)
-	}
-	return tc, nil
-}
-
-func GetFile(l net.Listener) *os.File {
-	var file *os.File
-	switch l := l.(type) {
-	case *tcpKeepAliveListener:
-		file, _ = l.TCPListener.File()
-	case *net.TCPListener:
-		file, _ = l.File()
-	}
-	return file
 }

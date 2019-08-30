@@ -6,19 +6,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/obase/apix/grpc_health_v1"
 	"github.com/obase/center"
+	"github.com/obase/httpx"
+	"github.com/obase/httpx/ginx"
 	"github.com/obase/log"
 	"google.golang.org/grpc"
 	"net/http"
 	"strconv"
 )
 
-func registerServiceHttp(httpRouter gin.IRouter, conf *Config) {
+func registerServiceHttp(httpServer *ginx.Server, conf *Config) {
 	defer log.Flush()
-	httpRouter.GET("/health", CheckHttpHealth)
+	httpServer.GET("/health", CheckHttpHealth)
 
 	realHttpHost := conf.HttpHost
 	if realHttpHost == "" {
-		realHttpHost = PrivateAddress
+		realHttpHost = httpx.FirstPrivateAddress
 	}
 
 	suffix := "@" + realHttpHost + ":" + strconv.Itoa(conf.HttpPort)
@@ -62,7 +64,7 @@ func registerServiceGrpc(grpcServer *grpc.Server, conf *Config) {
 
 	realGrpcHost := conf.GrpcHost
 	if realGrpcHost == "" {
-		realGrpcHost = PrivateAddress
+		realGrpcHost = httpx.FirstPrivateAddress
 	}
 	suffix := "@" + realGrpcHost + ":" + strconv.Itoa(conf.GrpcPort)
 	myname := center.GrpcName(conf.Name)
