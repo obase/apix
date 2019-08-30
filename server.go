@@ -34,6 +34,7 @@ type XServer struct {
 func NewServer() *XServer {
 	return &XServer{
 		Server: ginx.New(),
+		init:   make(map[string]bool), // fixbug
 	}
 }
 
