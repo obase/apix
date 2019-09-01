@@ -214,11 +214,22 @@ func (server *XServer) ServeWith(config *Config) error {
 			log.Flush()
 			return err
 		}
-		httpfunc = func() {
-			if err := httpServer.Serve(httpListener); err != nil {
-				log.Error(nil, "http server serve error: %v", err)
-				log.Flush()
-				os.Exit(1)
+		// 支持TLS,或http2.0
+		if config.HttpCertFile != "" {
+			httpfunc = func() {
+				if err := httpServer.ServeTLS(httpListener, config.HttpCertFile, config.HttpKeyFile); err != nil {
+					log.Error(nil, "http server serve error: %v", err)
+					log.Flush()
+					os.Exit(1)
+				}
+			}
+		} else {
+			httpfunc = func() {
+				if err := httpServer.Serve(httpListener); err != nil {
+					log.Error(nil, "http server serve error: %v", err)
+					log.Flush()
+					os.Exit(1)
+				}
 			}
 		}
 	}
